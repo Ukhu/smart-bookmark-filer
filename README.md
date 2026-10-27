@@ -55,14 +55,20 @@ development extension is loaded manually into Chrome.
 Run `pnpm zip` when a packaged artifact is needed. WXT writes the zip file to
 `.output/`. All `.output/` contents are generated and ignored by Git.
 
-## Planned Project Boundaries
+## Project Boundaries
 
 - `entrypoints/`: thin browser lifecycle and UI entrypoints
-- `features/`: product workflows grouped by feature
-- `infrastructure/`: Chrome APIs, persistence, and external provider adapters
+- `features/bookmark-filing/`: filing workflow, feature-owned ports, and domain
+  types
+- `infrastructure/bookmarks/`: Chrome bookmark-tree and bookmark-event adapters
+- `infrastructure/storage/`: Chrome local-storage adapters
+- `infrastructure/openai/`: direct OpenAI classification adapter
 - `shared/`: small domain-neutral types and utilities
 - `public/`: static extension assets
 
 Directories are added only when they contain real code. Unit tests are colocated
 with the modules they cover as `*.test.ts`; shared fixtures may be added under
-`tests/` when needed.
+`tests/` when needed. Feature code depends on feature-owned interfaces rather
+than infrastructure implementations. Entrypoints may compose the feature but
+must not import OpenAI or storage implementation details directly; ESLint
+enforces both dependency rules.

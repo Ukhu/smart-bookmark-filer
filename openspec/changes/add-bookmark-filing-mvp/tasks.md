@@ -2,9 +2,9 @@
 
 ## 1. Prerequisite and Extension Surface
 
-- [ ] 1.1 Confirm `setup-project-foundation` has been implemented and its validation command passes before changing product code; verify the WXT background scaffold, TypeScript checks, and Vitest harness are available.
-- [ ] 1.2 Configure the generated manifest with `bookmarks` and `storage` permissions plus host access limited to the OpenAI API, and verify a production build contains those permissions without content-script, active-tab, or broad host access.
-- [ ] 1.3 Establish the bookmark-filing feature and infrastructure module boundaries from the design without adding empty placeholder directories, and verify imports compile without entrypoints depending directly on OpenAI or storage implementation details.
+- [x] 1.1 Confirm `setup-project-foundation` has been implemented and its validation command passes before changing product code; verify the WXT background scaffold, TypeScript checks, and Vitest harness are available.
+- [x] 1.2 Configure the generated manifest with `bookmarks` and `storage` permissions plus host access limited to the OpenAI API, and verify a production build contains those permissions without content-script, active-tab, or broad host access.
+- [x] 1.3 Establish the bookmark-filing feature and infrastructure module boundaries from the design without adding empty placeholder directories, and verify imports compile without entrypoints depending directly on OpenAI or storage implementation details.
 
 ## 2. Configuration and Options Experience
 
