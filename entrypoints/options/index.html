@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Bookmark Filer Settings</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Smart Bookmark Filer</h1>
+      <p class="intro">
+        Choose where new bookmarks arrive and which folder trees may receive
+        them.
+      </p>
+
+      <form id="filing-options-form">
+        <label for="inbox-folder">Inbox folder</label>
+        <select id="inbox-folder" required></select>
+
+        <label for="destination-roots">Destination roots</label>
+        <select id="destination-roots" multiple required size="8"></select>
+        <p class="hint">Select one or more folders.</p>
+
+        <label for="model">OpenAI model</label>
+        <input id="model" name="model" type="text" required />
+
+        <label for="confidence-threshold">Confidence threshold</label>
+        <input
+          id="confidence-threshold"
+          name="confidence-threshold"
+          type="number"
+          min="0"
+          max="1"
+          step="0.01"
+          required
+        />
+
+        <label for="api-key-replacement">OpenAI API key</label>
+        <input
+          id="api-key-replacement"
+          name="api-key-replacement"
+          type="password"
+          autocomplete="off"
+          placeholder="Enter a key to replace the saved key"
+        />
+        <p id="api-key-status" class="hint"></p>
+
+        <div class="actions">
+          <button type="submit">Save settings</button>
+          <button id="clear-api-key" type="button" class="secondary">
+            Clear API key
+          </button>
+        </div>
+      </form>
+
+      <div id="status" role="status" aria-live="polite"></div>
+    </main>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

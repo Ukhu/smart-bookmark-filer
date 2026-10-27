@@ -1,0 +1,88 @@
+:root {
+  color: #172033;
+  background: #f5f7fb;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  box-sizing: border-box;
+  max-width: 46rem;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+}
+
+h1 {
+  margin-bottom: 0.25rem;
+}
+
+.intro,
+.hint {
+  color: #586174;
+}
+
+form {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 2rem;
+}
+
+label {
+  margin-top: 0.75rem;
+  font-weight: 650;
+}
+
+input,
+select,
+button {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.65rem;
+  font: inherit;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+button {
+  border: 1px solid #1e5bd7;
+  border-radius: 0.35rem;
+  color: white;
+  background: #1e5bd7;
+  cursor: pointer;
+}
+
+button.secondary {
+  color: #1e5bd7;
+  background: white;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+#status {
+  margin-top: 1.25rem;
+}
+
+.error {
+  color: #a11919;
+}
+
+.success {
+  color: #176b35;
+}
