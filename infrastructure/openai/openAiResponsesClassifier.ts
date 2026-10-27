@@ -185,7 +185,18 @@ export class OpenAiResponsesClassifier implements BookmarkClassifier {
         return providerFailure(response.status);
       }
 
-      return parseClassification(await response.json(), candidateIds);
+      let responseBody: unknown;
+
+      try {
+        responseBody = await response.json();
+      } catch {
+        return {
+          kind: 'unresolved',
+          category: controller.signal.aborted ? 'timeout' : 'invalid-response',
+        };
+      }
+
+      return parseClassification(responseBody, candidateIds);
     } catch {
       return {
         kind: 'unresolved',
