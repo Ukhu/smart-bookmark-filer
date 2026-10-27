@@ -1,0 +1,31 @@
+{
+  "name": "smart-bookmark-filer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "wxt build -b chrome",
+    "dev": "wxt",
+    "format": "prettier --write --ignore-unknown \"*.{json,md,mjs,ts}\" \"entrypoints/**/*.ts\"",
+    "format:check": "prettier --check --ignore-unknown \"*.{json,md,mjs,ts}\" \"entrypoints/**/*.ts\"",
+    "lint": "eslint .",
+    "postinstall": "wxt prepare",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit",
+    "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "zip": "wxt zip -b chrome"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.13.0",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.0",
+    "vitest": "5.0.5",
+    "wxt": "0.21.5"
+  }
+}
