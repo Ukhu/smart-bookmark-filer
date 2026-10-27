@@ -35,8 +35,8 @@ entrypoints/background.ts
           |
           v
 features/bookmark-filing/
-  filing-workflow.ts
-  candidate-builder.ts
+  filingWorkflow.ts
+  candidateBuilder.ts
   types.ts
           |
           +-------------------+--------------------+
@@ -45,6 +45,14 @@ infrastructure/bookmarks  infrastructure/storage  infrastructure/openai
 ```
 
 The framework-free options entrypoint will use the same configuration and bookmark-tree adapters. This keeps browser-specific details at the edges and allows unit tests to use in-memory fakes. A single all-purpose service was rejected because it would tightly couple event timing, storage, tree traversal, network calls, and movement.
+
+### Codify naming and test placement before remaining implementation
+
+Project-owned TypeScript filenames will use camelCase. Filenames whose exact form is required by tooling, including WXT entrypoint names, are exceptions. Production modules remain grouped by feature or infrastructure area, while tests will not be colocated with them: feature tests will preserve module grouping under `features/tests/<feature>/`, and infrastructure tests under `infrastructure/tests/<area>/`.
+
+Before remaining feature work, the existing kebab-case TypeScript files will be renamed with their imports updated, and existing tests will be moved into those grouped test directories. Root `AGENTS.md` will document the conventions for repository-wide agent work, and `openspec/config.yaml` will provide equivalent apply guidance so OpenSpec implementation work follows the same rules. Formatting will cover project source and test paths, and automated filename and test-location checks will run as part of repository validation.
+
+Colocating tests was rejected because it conflicts with the repository's desired separation between production and test code. Relying on written guidance alone was rejected because naming and placement drift is inexpensive to detect mechanically and otherwise easy to introduce during later implementation.
 
 ### Store one versioned configuration object in local extension storage
 
@@ -91,7 +99,7 @@ The WXT manifest configuration will request `bookmarks` for tree access and move
 
 ### Test policy at feature and adapter boundaries
 
-Unit tests will cover configuration parsing and validation, tree traversal and path construction, candidate deduplication, request redaction, response validation, threshold boundaries, and movement revalidation. Chrome APIs and `fetch` will be mocked at the infrastructure boundary. A build-level check will verify generated manifest permissions and both entrypoints; live OpenAI calls will not run in automated tests.
+Unit tests will cover configuration parsing and validation, tree traversal and path construction, candidate deduplication, request redaction, response validation, threshold boundaries, and movement revalidation. Tests will be kept outside production directories and grouped under `features/tests/<feature>/` or `infrastructure/tests/<area>/` according to the module boundary they exercise. Chrome APIs and `fetch` will be mocked at the infrastructure boundary. A build-level check will verify generated manifest permissions and both entrypoints; live OpenAI calls will not run in automated tests.
 
 ## Risks / Trade-offs
 
@@ -106,9 +114,10 @@ Unit tests will cover configuration parsing and validation, tree traversal and p
 ## Migration Plan
 
 1. Complete and validate `setup-project-foundation` before applying this change.
-2. Add the configuration model, validators, Chrome adapters, and options entrypoint before enabling bookmark-event processing.
-3. Add candidate construction and the OpenAI adapter with mocked contract tests.
-4. Wire the filing workflow into the background entrypoint only after safe failure and revalidation tests pass.
-5. Build the extension, inspect generated permissions, load it unpacked, save personal settings, and perform controlled Inbox smoke tests.
+2. Before continuing feature implementation, document and automate the repository conventions, normalize existing TypeScript filenames and test locations, update affected imports and tooling, and run the complete validation suite.
+3. Add the configuration model, validators, Chrome adapters, and options entrypoint before enabling bookmark-event processing.
+4. Add candidate construction and the OpenAI adapter with mocked contract tests.
+5. Wire the filing workflow into the background entrypoint only after safe failure and revalidation tests pass.
+6. Build the extension, inspect generated permissions, load it unpacked, save personal settings, and perform controlled Inbox smoke tests.
 
 Rollback consists of disabling or removing the unpacked extension. Existing bookmarks remain in their current folders; local extension settings can be cleared with the extension's site data, and no backend data requires migration.

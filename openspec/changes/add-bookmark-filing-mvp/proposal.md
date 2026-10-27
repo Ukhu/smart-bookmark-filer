@@ -14,6 +14,7 @@ New bookmarks require repeated manual sorting, especially when their domains are
 - Automatically move only valid, sufficiently confident classifications; leave uncertain, invalid, or failed classifications in the Inbox.
 - Keep the MVP personal and local-first except for the explicit OpenAI classification request; no backend or page-content collection is introduced.
 - Require the `setup-project-foundation` change to be implemented before this change.
+- Before continuing feature implementation, establish repository conventions that use camelCase for project-owned TypeScript filenames, keep tests outside production directories under feature- and infrastructure-grouped test paths, exempt tool-required filenames such as WXT entrypoint names, document the rules for agents and OpenSpec apply work, and enforce them with automated checks.
 
 ## Capabilities
 
@@ -34,3 +35,4 @@ None.
 - Adds Chrome `bookmarks` and `storage` permissions plus network access limited to the OpenAI API.
 - Stores personal configuration and the API key in `chrome.storage.local`; the key is not included in source control or extension bundles.
 - Adds OpenAI request mocking and Chrome API mocking to the unit-test suite.
+- Renames existing project-owned TypeScript modules and updates their imports, moves existing tests into grouped test directories, expands formatting coverage, and adds automated filename and test-location validation.
