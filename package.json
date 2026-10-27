@@ -10,13 +10,14 @@
   "scripts": {
     "build": "wxt build -b chrome",
     "dev": "wxt",
-    "format": "prettier --write --ignore-unknown \"*.{json,md,mjs,ts}\" \"entrypoints/**/*.ts\"",
-    "format:check": "prettier --check --ignore-unknown \"*.{json,md,mjs,ts}\" \"entrypoints/**/*.ts\"",
+    "check:conventions": "node scripts/checkConventions.mjs",
+    "format": "prettier --write --ignore-unknown \"*.{json,md,mjs,ts}\" \"composition/**/*\" \"entrypoints/**/*\" \"features/**/*\" \"infrastructure/**/*\" \"scripts/**/*\"",
+    "format:check": "prettier --check --ignore-unknown \"*.{json,md,mjs,ts}\" \"composition/**/*\" \"entrypoints/**/*\" \"features/**/*\" \"infrastructure/**/*\" \"scripts/**/*\"",
     "lint": "eslint .",
     "postinstall": "wxt prepare",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
-    "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm check:conventions",
     "zip": "wxt zip -b chrome"
   },
   "devDependencies": {
