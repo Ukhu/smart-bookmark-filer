@@ -8,7 +8,7 @@
 
 ## 2. Configuration and Options Experience
 
-- [ ] 2.1 Implement the versioned filing-configuration model, unknown-data parser, field validation, and source/destination overlap validation with unit tests covering valid, incomplete, out-of-range, malformed, and overlapping configurations.
+- [x] 2.1 Implement the versioned filing-configuration model, unknown-data parser, field validation, and source/destination overlap validation with unit tests covering valid, incomplete, out-of-range, malformed, and overlapping configurations.
 - [ ] 2.2 Implement Chrome local-storage access that preserves the last valid object, supports explicit API-key replacement and clearing, and never returns malformed settings as usable; verify with mocked Chrome storage tests including reload and stale-data cases.
 - [ ] 2.3 Implement the Chrome bookmark-tree adapter needed to enumerate folders, resolve IDs, determine ancestry, and identify stale selections; verify unit tests cover nested trees, missing folders, duplicate names, and root/Inbox relationships.
 - [ ] 2.4 Add a framework-free WXT options entrypoint that selects one Inbox and multiple destination roots, edits model and confidence settings, masks configured-key state, and reports validation or stale-folder errors; verify the options entrypoint builds and its extracted state/validation logic passes tests for save, preserve-key, replace-key, and clear-key flows.
