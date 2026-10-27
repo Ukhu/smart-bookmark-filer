@@ -5,7 +5,7 @@ import {
   ChromeBookmarkTreeAdapter,
   type BookmarkTreeNode,
   type ChromeBookmarksApi,
-} from './chrome-bookmark-tree';
+} from '../../bookmarks/chromeBookmarkTree';
 
 const nestedTree: readonly BookmarkTreeNode[] = [
   {

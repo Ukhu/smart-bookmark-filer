@@ -1,5 +1,5 @@
 import { createFilingOptionsController } from '../../composition/options';
-import type { OptionsViewState } from '../../features/bookmark-filing/options-controller';
+import type { OptionsViewState } from '../../features/bookmark-filing/optionsController';
 
 function element<T extends HTMLElement>(id: string): T {
   const found = document.querySelector<T>(`#${id}`);

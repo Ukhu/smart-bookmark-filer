@@ -4,13 +4,13 @@ import {
   FILING_CONFIGURATION_VERSION,
   parseFilingConfiguration,
   type FilingConfiguration,
-} from './configuration';
+} from '../../bookmark-filing/configuration';
 import {
   FilingOptionsController,
   type OptionsApiKeyUpdate,
   type OptionsConfigurationStore,
   type OptionsFolderSnapshot,
-} from './options-controller';
+} from '../../bookmark-filing/optionsController';
 
 const folders = [
   { id: 'root', title: '', path: '/' },

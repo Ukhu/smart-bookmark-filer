@@ -4,7 +4,7 @@ import {
   FILING_CONFIGURATION_VERSION,
   parseFilingConfiguration,
   validateSourceDestinationBoundaries,
-} from './configuration';
+} from '../../bookmark-filing/configuration';
 
 const validConfiguration = {
   version: FILING_CONFIGURATION_VERSION,

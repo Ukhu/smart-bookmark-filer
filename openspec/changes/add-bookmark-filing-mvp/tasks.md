@@ -18,8 +18,8 @@
 
 - [x] 3.1 Create root `AGENTS.md` with repository-wide guidance that project-owned TypeScript filenames use camelCase, tests remain outside production directories under `features/tests/<feature>/` or `infrastructure/tests/<area>/`, and tool-required filenames such as WXT entrypoint names are exceptions; verify the file states each rule unambiguously.
 - [x] 3.2 Add equivalent OpenSpec apply guidance to `openspec/config.yaml`; verify the apply instructions match `AGENTS.md` without introducing contradictory naming, test-location, or exception rules.
-- [ ] 3.3 Rename existing kebab-case project-owned TypeScript files to camelCase and update all affected imports while preserving tool-required filenames; verify repository search finds no disallowed TypeScript filenames and `pnpm typecheck` passes.
-- [ ] 3.4 Move existing tests out of production directories while preserving module grouping under `features/tests/<feature>/` and `infrastructure/tests/<area>/`, updating imports and test discovery as needed; verify no test files remain colocated and `pnpm test` discovers and passes the moved tests.
+- [x] 3.3 Rename existing kebab-case project-owned TypeScript files to camelCase and update all affected imports while preserving tool-required filenames; verify repository search finds no disallowed TypeScript filenames and `pnpm typecheck` passes.
+- [x] 3.4 Move existing tests out of production directories while preserving module grouping under `features/tests/<feature>/` and `infrastructure/tests/<area>/`, updating imports and test discovery as needed; verify no test files remain colocated and `pnpm test` discovers and passes the moved tests.
 - [ ] 3.5 Expand formatting coverage to all relevant project source and test paths, add automated filename and test-location enforcement, and include the checks in repository validation; verify formatting checks pass and the enforcement detects representative invalid filename and colocated-test cases.
 - [ ] 3.6 Run the complete validation suite after repository normalization and verify formatting, linting, type checking, tests, and convention enforcement all pass before continuing feature implementation.
 

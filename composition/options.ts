@@ -1,6 +1,6 @@
-import { FilingOptionsController } from '../features/bookmark-filing/options-controller';
-import { createChromeBookmarkTreeAdapter } from '../infrastructure/bookmarks/chrome-bookmark-tree';
-import { createChromeLocalFilingConfigurationStore } from '../infrastructure/storage/chrome-filing-configuration-store';
+import { FilingOptionsController } from '../features/bookmark-filing/optionsController';
+import { createChromeBookmarkTreeAdapter } from '../infrastructure/bookmarks/chromeBookmarkTree';
+import { createChromeLocalFilingConfigurationStore } from '../infrastructure/storage/chromeFilingConfigurationStore';
 
 export function createFilingOptionsController(): FilingOptionsController {
   return new FilingOptionsController(

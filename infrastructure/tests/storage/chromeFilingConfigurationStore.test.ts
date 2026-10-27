@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FILING_CONFIGURATION_VERSION } from '../../features/bookmark-filing/configuration';
+import { FILING_CONFIGURATION_VERSION } from '../../../features/bookmark-filing/configuration';
 import {
   ChromeFilingConfigurationStore,
   FILING_CONFIGURATION_STORAGE_KEY,
   type LocalStorageArea,
-} from './chrome-filing-configuration-store';
+} from '../../storage/chromeFilingConfigurationStore';
 
 const validDraft = {
   version: FILING_CONFIGURATION_VERSION,
