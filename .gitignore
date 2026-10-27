@@ -4,6 +4,8 @@ node_modules/
 # WXT generated files and build artifacts
 .wxt/
 .output/
+.vitepress/cache/
+.vitepress/dist/
 
 # Test coverage
 coverage/

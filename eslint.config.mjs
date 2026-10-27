@@ -3,7 +3,14 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['.output/**', '.wxt/**', 'coverage/**', 'node_modules/**'],
+    ignores: [
+      '.output/**',
+      '.vitepress/cache/**',
+      '.vitepress/dist/**',
+      '.wxt/**',
+      'coverage/**',
+      'node_modules/**',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

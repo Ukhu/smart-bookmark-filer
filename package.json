@@ -11,10 +11,11 @@
     "build": "wxt build -b chrome",
     "dev": "wxt",
     "check:conventions": "node scripts/checkConventions.mjs",
-    "format": "prettier --write --ignore-unknown \"*.{json,md,mjs,ts}\" \"composition/**/*\" \"entrypoints/**/*\" \"features/**/*\" \"infrastructure/**/*\" \"scripts/**/*\"",
-    "format:check": "prettier --check --ignore-unknown \"*.{json,md,mjs,ts}\" \"composition/**/*\" \"entrypoints/**/*\" \"features/**/*\" \"infrastructure/**/*\" \"scripts/**/*\"",
+    "format": "prettier --write --ignore-unknown \"*.{json,md,mjs,ts}\" \".vitepress/**/*\" \"composition/**/*\" \"entrypoints/**/*\" \"features/**/*\" \"infrastructure/**/*\" \"openspec/index.md\" \"scripts/**/*\"",
+    "format:check": "prettier --check --ignore-unknown \"*.{json,md,mjs,ts}\" \".vitepress/**/*\" \"composition/**/*\" \"entrypoints/**/*\" \"features/**/*\" \"infrastructure/**/*\" \"openspec/index.md\" \"scripts/**/*\"",
     "lint": "eslint .",
     "postinstall": "wxt prepare",
+    "openspec:review": "vitepress dev . --open",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "validate": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm check:conventions",
@@ -26,6 +27,7 @@
     "prettier": "3.9.10",
     "typescript": "5.9.3",
     "typescript-eslint": "8.72.0",
+    "vitepress": "1.6.4",
     "vitest": "5.0.5",
     "wxt": "0.21.5"
   }

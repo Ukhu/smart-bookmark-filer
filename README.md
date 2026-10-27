@@ -21,17 +21,29 @@ files under `.wxt/`.
 
 ## Commands
 
-| Command             | Purpose                                             |
-| ------------------- | --------------------------------------------------- |
-| `pnpm dev`          | Start WXT's Chrome development build in watch mode  |
-| `pnpm build`        | Create a production Chrome build                    |
-| `pnpm zip`          | Create a production Chrome build and zip package    |
-| `pnpm format`       | Format project source and configuration files       |
-| `pnpm format:check` | Check formatting without changing files             |
-| `pnpm lint`         | Run ESLint                                          |
-| `pnpm typecheck`    | Run strict TypeScript checks without emitting files |
-| `pnpm test`         | Run colocated unit tests in Node                    |
-| `pnpm validate`     | Run formatting, linting, type checking, and tests   |
+| Command                | Purpose                                             |
+| ---------------------- | --------------------------------------------------- |
+| `pnpm dev`             | Start WXT's Chrome development build in watch mode  |
+| `pnpm build`           | Create a production Chrome build                    |
+| `pnpm zip`             | Create a production Chrome build and zip package    |
+| `pnpm openspec:review` | Open the local OpenSpec review site                 |
+| `pnpm format`          | Format project source and configuration files       |
+| `pnpm format:check`    | Check formatting without changing files             |
+| `pnpm lint`            | Run ESLint                                          |
+| `pnpm typecheck`       | Run strict TypeScript checks without emitting files |
+| `pnpm test`            | Run colocated unit tests in Node                    |
+| `pnpm validate`        | Run formatting, linting, type checking, and tests   |
+
+## Review OpenSpec Artifacts
+
+Run `pnpm openspec:review` to start the VitePress review site and open it in your
+browser. The development server uses VitePress's localhost-only default binding;
+the project does not configure remote network access.
+
+Edits to existing OpenSpec Markdown content reload live. Restart
+`pnpm openspec:review` after structural changes, such as creating, moving,
+renaming, or archiving artifacts, so the filesystem-derived navigation is
+rebuilt.
 
 ## Load the Development Build
 
