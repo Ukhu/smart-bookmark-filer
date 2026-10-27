@@ -1,9 +1,8 @@
 # Smart Bookmark Filer
 
-Smart Bookmark Filer is a personal Chrome extension intended to organize newly
-created bookmarks automatically. The current scaffold contains no bookmark
-filing or external API behavior; it establishes the development toolchain for
-that later work.
+Smart Bookmark Filer is a personal Chrome extension for organizing newly
+created bookmarks. Its options page stores the local folder boundaries and
+OpenAI settings used by automatic filing.
 
 ## Prerequisites
 
@@ -54,6 +53,53 @@ development extension is loaded manually into Chrome.
 
 Run `pnpm zip` when a packaged artifact is needed. WXT writes the zip file to
 `.output/`. All `.output/` contents are generated and ignored by Git.
+
+## Configure Bookmark Filing
+
+After loading the extension, open `chrome://extensions`, select **Details** for
+Smart Bookmark Filer, and select **Extension options**. Configure every field:
+
+1. Select one **Inbox folder**. New bookmarks must be created directly in this
+   folder to be eligible for filing.
+2. Select one or more **Destination roots**. Use Ctrl (Windows/Linux) or Command
+   (macOS) while selecting to choose multiple roots. A selected root and its
+   descendant folders are eligible destinations.
+3. Enter the **OpenAI model** to use.
+4. Set the **Confidence threshold** to a number from `0` through `1`. Higher
+   values require greater model confidence before a bookmark can be moved.
+5. Enter an **OpenAI API key**, then select **Save settings**.
+
+When a key is already configured, the options page reports that state without
+displaying the saved key. Leave the password field blank when saving to preserve
+the existing key, or enter a value to replace it. **Clear API key** removes the
+locally stored filing configuration and leaves automatic filing inactive until
+a complete valid configuration and key are saved again.
+
+Invalid values or folder selections are reported without replacing the last
+valid saved configuration. If a selected folder is deleted, the options page
+identifies the missing selection; choose an existing replacement before saving.
+
+### Folder boundaries
+
+The Inbox must remain separate from every destination root:
+
+- The Inbox cannot also be a destination root.
+- A destination root cannot be inside the Inbox subtree.
+- The Inbox cannot be inside a destination-root subtree.
+- Destination roots may overlap each other. Overlapping roots do not make a
+  folder eligible more than once.
+
+### Local API-key storage
+
+Settings, including the OpenAI API key, are stored in `chrome.storage.local` for
+this Chrome profile. They are not synchronized with `chrome.storage.sync` and
+must be configured separately in another profile or browser installation. The
+key is protected only by Chrome's local profile storage; anyone with profile or
+extension-debug access may be able to read it.
+
+Use a restricted personal key where available. Enter the key only through the
+extension options page: never add it to source files, configuration files,
+commits, build artifacts, or documentation.
 
 ## Project Boundaries
 
