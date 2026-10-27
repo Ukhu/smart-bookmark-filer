@@ -29,7 +29,7 @@
 - [x] 4.2 Define the classification port and discriminated success/unresolved result types so feature code has no OpenAI-specific response dependency; verify TypeScript exhaustiveness checks and unit tests cover every unresolved category used by the workflow.
 - [x] 4.3 Implement the direct OpenAI Responses API adapter using `fetch`, a finite timeout, the configured model and key, and strict structured output for folder ID and confidence; verify mocked-fetch tests inspect that requests contain only title, URL, candidate IDs/paths, and classification instructions.
 - [x] 4.4 Validate response shape, candidate membership, finite confidence bounds, and safe error mapping while redacting credentials from all errors; verify tests cover valid output, invented folders, malformed JSON/schema data, missing credentials, authorization errors, rate limits, provider errors, network failures, and timeouts.
-- [ ] 4.5 Document exactly which bookmark data is sent to OpenAI, which data is excluded, and the cost/privacy implications of direct personal API use; verify the documentation agrees with request-contract tests.
+- [x] 4.5 Document exactly which bookmark data is sent to OpenAI, which data is excluded, and the cost/privacy implications of direct personal API use; verify the documentation agrees with request-contract tests.
 
 ## 5. Automatic Filing Workflow
 

@@ -113,6 +113,39 @@ Use a restricted personal key where available. Enter the key only through the
 extension options page: never add it to source files, configuration files,
 commits, build artifacts, or documentation.
 
+### OpenAI data, privacy, and cost
+
+Classification requests go directly from the extension to the OpenAI Responses
+API using the configured model and personal API key. The key is sent only in the
+authorization header; it is not included in the classification prompt.
+
+For each bookmark submitted for classification, the prompt contains only:
+
+- the bookmark title;
+- the bookmark's full URL, including any path, query string, or fragment; and
+- each currently eligible destination folder's Chrome folder ID and contextual
+  path beneath the selected destination roots.
+
+The request also contains classification instructions and a strict response
+schema requiring one candidate folder ID and a confidence value. It does not
+send page content, page metadata or favicons, open-tab data, browsing history,
+the source bookmark ID, the Inbox folder ID, bookmark timestamps or positions,
+bookmarks outside the eligible destination set, or unrelated saved settings.
+The extension does not fetch the bookmarked page for classification.
+
+Titles, URLs, and destination paths can themselves contain private information.
+Review them before using automatic filing and avoid placing sensitive data in
+folder names or bookmark URLs. OpenAI processes the disclosed data under the
+terms, privacy controls, and retention settings applicable to the API account;
+this extension does not add a proxy or project-operated backend between the
+browser and OpenAI.
+
+Requests use the user's personal OpenAI API account and may incur usage charges.
+Cost depends on the configured model, current OpenAI pricing, and request size;
+larger destination trees send more folder IDs and paths and therefore use more
+input tokens. Monitor API usage and billing in the OpenAI account and choose the
+model and destination roots accordingly.
+
 ## Project Boundaries
 
 - `entrypoints/`: thin browser lifecycle and UI entrypoints
