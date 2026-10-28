@@ -12,7 +12,7 @@
 
 - [x] 2.1 Add `docs/diagrams/README.md` defining `.excalidraw` as the editable source of truth, same-basename PNG/SVG preview conventions, camelCase diagram naming, re-import-before-edit behavior, and temporary versus committed artifacts; verify the directory and guidance are present
 - [x] 2.2 Extend formatting or convention coverage to include the new root JSONC and diagram documentation where appropriate, and verify `pnpm format:check` plus `pnpm check:conventions` pass without rewriting vendored tool-required filenames
-- [ ] 2.3 Exercise the documented continuation workflow by exporting a temporary editable scene, importing it, making a visible revision, and rendering it again; verify the revised source remains editable and the preview reflects the revision
+- [x] 2.3 Exercise the documented continuation workflow by exporting a temporary editable scene, importing it, making a visible revision, and rendering it again; verify the revised source remains editable and the preview reflects the revision
 
 ## 3. Integration verification
 
