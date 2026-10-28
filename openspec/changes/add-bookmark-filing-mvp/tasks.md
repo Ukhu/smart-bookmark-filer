@@ -36,7 +36,7 @@
 - [x] 5.1 Implement the filing workflow's initial eligibility checks for URL bookmarks created directly in a valid configured Inbox; verify unit tests prove bookmarks elsewhere, non-URL nodes, and incomplete or stale configurations do not invoke classification.
 - [x] 5.2 Implement confidence-gated outcomes so valid results at or above the threshold proceed and low-confidence or unresolved results leave the bookmark untouched; verify boundary tests cover confidence below, equal to, and above the threshold plus every classifier failure category.
 - [x] 5.3 Implement fresh bookmark, configuration, and destination revalidation immediately before movement; verify tests cover successful movement, manual movement during classification, bookmark deletion, changed configuration, deleted destinations, and destinations that leave the allowed roots.
-- [ ] 5.4 Register the Chrome bookmark-created listener in the WXT background entrypoint and create independent request context per bookmark ID; verify mocked event tests show overlapping classifications can complete in either order without moving the wrong bookmark.
+- [x] 5.4 Register the Chrome bookmark-created listener in the WXT background entrypoint and create independent request context per bookmark ID; verify mocked event tests show overlapping classifications can complete in either order without moving the wrong bookmark.
 - [ ] 5.5 Document Inbox-only behavior, unresolved-bookmark handling, lack of automatic retries, and the risk of bulk additions triggering paid requests; verify the README description matches workflow tests.
 
 ## 6. Integration Verification
