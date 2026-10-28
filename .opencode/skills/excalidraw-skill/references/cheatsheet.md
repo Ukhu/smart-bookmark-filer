@@ -3,12 +3,12 @@
 ## Defaults
 
 - Canvas base URL: `EXPRESS_SERVER_URL` (default `http://127.0.0.1:3000`); CLI also accepts `--url <canvasUrl>`
-- Canvas health: `GET /health` or `npx -y mcp-excalidraw-server status`
+- Canvas health: `GET /health` or `npx -y mcp-excalidraw-server@2.1.2 status`
 - Auto-start: any canvas-touching CLI command starts the server if it's down (opt out with `EXCALIDRAW_NO_AUTOSTART=1`)
 
 ## CLI Reference
 
-`npx -y mcp-excalidraw-server <command>` (or `excalidraw-canvas <command>` after `npm i -g`).
+`npx -y mcp-excalidraw-server@2.1.2 <command>`. Always use this exact version; do not substitute an unversioned or globally installed CLI.
 JSON results on stdout — except `describe` (plain text) and raw-content output when `--out` is omitted (`export` scene JSON, `screenshot --format svg`). Diagnostics on stderr. Exit codes: 0 ok, 1 error, 2 usage, 3 canvas unreachable, 4 browser tab required (only `mermaid` and `screenshot --renderer browser`). Explicit `start` overrides `EXCALIDRAW_NO_AUTOSTART=1`.
 
 ### Server
@@ -40,7 +40,7 @@ JSON results on stdout — except `describe` (plain text) and raw-content output
 | `export [--out f.excalidraw] [--format json\|obsidian]` | Scene as .excalidraw JSON (stdout without `--out`); a `.md` out path writes Obsidian's .excalidraw.md format |
 | `import [file\|-] [--replace]` | Import .excalidraw JSON or Obsidian .excalidraw.md (merge by default) |
 | `mermaid [file\|-]` | Render Mermaid onto the canvas (**browser tab required**) |
-| `share` | Encrypted upload → shareable excalidraw.com URL |
+| `share` | Only after an explicit user request: encrypted upload → shareable excalidraw.com URL |
 | `clear --yes` | Wipe the canvas |
 | `snapshot save\|list\|restore [name]` | Named canvas snapshots |
 
@@ -101,7 +101,7 @@ JSON results on stdout — except `describe` (plain text) and raw-content output
 | `export_scene` | Export to .excalidraw JSON (a `.md` filePath → Obsidian .excalidraw.md) | (optional) `filePath` |
 | `import_scene` | Import from .excalidraw JSON or Obsidian .excalidraw.md | `mode` ("replace"\|"merge"), `filePath` or `data` |
 | `export_to_image` | Export to PNG/SVG (headless, no browser needed; SVG embeds fonts) | `format` ("png"\|"svg"), (optional) `filePath`, `background`, `dark`, `scale` (1-4), `padding`, `elementIds`, `frameId`, `renderer` ("auto"\|"node"\|"browser") |
-| `export_to_excalidraw_url` | Upload & get shareable excalidraw.com URL | (none) |
+| `export_to_excalidraw_url` | Only after an explicit user request: upload encrypted scene data and get a shareable excalidraw.com URL | (none) |
 
 ### State Management
 
@@ -189,5 +189,5 @@ Notes:
 Stroke/fill pairs: `#e03131`/`#ffc9c9` red, `#2f9e44`/`#b2f2bb` green, `#1971c2`/`#a5d8ff` blue, `#9c36b5`/`#eebefa` purple, `#e8590c`/`#ffd8a8` orange, `#0c8599`/`#99e9f2` cyan, `#868e96`/`#e9ecef` gray.
 Styling: `"fillStyle": "solid"` for crisp flat fills (default is sketchy hachure); `"strokeStyle": "dashed"` for zone borders / async arrows.
 Sizing: shapes ≥ 120×60 with width ≥ `labelChars * 12`, fonts ≥ 16 (titles ≥ 20), gaps 40–80px (120px+ for labeled arrows), align to a 20px grid.
-Order of work: background zones → primary shapes (with `text`) → arrows (bound via ids) → annotations → refine (align/distribute/screenshot).
+Order of work: inspect relevant source/design artifacts → plan information hierarchy → background zones → primary shapes (with `text`) → arrows (bound via ids) → annotations → refine → `describe_scene` → render with `get_canvas_screenshot` → correct and repeat both inspections until they pass.
 MCP mode has the full guide behind the `read_diagram_guide` tool.

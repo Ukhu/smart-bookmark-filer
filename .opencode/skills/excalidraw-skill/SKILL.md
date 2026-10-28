@@ -1,9 +1,18 @@
 ---
 name: excalidraw-skill
-description: Excalidraw canvas toolkit for creating, editing, and refining diagrams on a live canvas. Use when an agent needs to (1) draw or lay out diagrams, (2) iteratively refine them by describing the scene and screenshotting its own work, (3) export/import .excalidraw files or PNG/SVG images, (4) save/restore canvas snapshots, (5) convert Mermaid to Excalidraw, or (6) perform element-level CRUD, alignment, distribution, grouping, duplication, and locking. Primary interface is the bundled CLI (npx -y mcp-excalidraw-server <command>) which auto-starts the canvas server; MCP tools and a REST API are equivalent alternatives.
+description: Excalidraw canvas toolkit for creating, editing, and refining diagrams on a live canvas. Use when an agent needs to (1) draw or lay out diagrams, (2) iteratively refine them by describing the scene and rendering its own work, (3) export/import .excalidraw files or PNG/SVG images, (4) save/restore canvas snapshots, (5) convert Mermaid to Excalidraw, or (6) perform element-level CRUD, alignment, distribution, grouping, duplication, and locking. Primary interface is the pinned bundled CLI (npx -y mcp-excalidraw-server@2.1.2 <command>) which auto-starts the canvas server; MCP tools and a REST API are equivalent alternatives.
 ---
 
 # Excalidraw Skill
+
+## Project Rules (Required)
+
+1. **Inspect before drawing.** Read the relevant source files and available design artifacts before deciding what the diagram should claim. Do not infer architecture from filenames alone.
+2. **Plan the information hierarchy.** Identify the audience, primary message, tiers or zones, labels, and connection directions before creating elements.
+3. **Run the full correction loop.** After creating or changing elements, inspect the structured scene with `describe` / `describe_scene` **and** inspect a rendered image with `screenshot` / `get_canvas_screenshot`. Correct clipping, overlap, unclear hierarchy, and poor routing, then describe and render again. Do not present a diagram as complete until both inspections pass.
+4. **Keep durable project artifacts together.** Export editable sources only under `docs/diagrams/` using a `.excalidraw` file as the source of truth. Put any durable PNG or SVG preview beside it with the same basename. If updating an existing diagram, import its `.excalidraw` source first rather than recreating it from a preview.
+5. **Keep external sharing opt-in.** Never run the CLI `share` command or MCP `export_to_excalidraw_url` tool unless the user explicitly requests an externally accessible link. Before doing so, state that encrypted scene data will be uploaded to the configured external service. Drawing, rendering, and repository export do not imply sharing permission.
+6. **Report failures accurately.** If startup, inspection, rendering, or export fails, identify the failed step and do not claim the diagram or missing artifact is complete.
 
 ## Step 0: Pick an Interface
 
@@ -12,9 +21,9 @@ Three interfaces drive the same live canvas. Pick the first one that applies:
 1. **MCP tools** — if `excalidraw/*` tools (e.g. `batch_create_elements`) are in your tool list, prefer them: results land directly in your context, and screenshots come back as images without touching disk.
 2. **CLI** (default when no MCP tools are present):
    ```bash
-   npx -y mcp-excalidraw-server <command>
+   npx -y mcp-excalidraw-server@2.1.2 <command>
    ```
-   No setup needed — any canvas-touching command **auto-starts the canvas server** on `http://127.0.0.1:3000` (first `npx` run downloads the package). If the CLI is installed globally (`npm i -g mcp-excalidraw-server`), the shorter alias `excalidraw-canvas <command>` works too.
+   No setup needed — any canvas-touching command **auto-starts the canvas server** on `http://127.0.0.1:3000` (the first `npx` run downloads pinned version `2.1.2`). Always use this exact package version; do not substitute an unversioned or globally installed CLI.
 3. **REST API** (last resort, e.g. from application code): HTTP endpoints on `http://127.0.0.1:3000` — see `references/cheatsheet.md` for payloads. The server must already be running.
 
 The canvas URL comes from `EXPRESS_SERVER_URL` (default `http://127.0.0.1:3000`). Screenshots and image exports render headless inside the canvas server, so you never need a browser tab to check your own work. Only mermaid conversion and viewport control need an open tab (CLI exits with code 4 when it's missing). Still tell the user the URL — opening it lets them watch you draw.
@@ -36,7 +45,7 @@ Results are JSON on stdout — except `describe` (plain text) and raw-content ou
 | Scene files | `export [--out scene.excalidraw]`, `import [scene.excalidraw|-] [--replace]` — a `.excalidraw.md` out path writes Obsidian's format (see File I/O) |
 | Mermaid → canvas | `mermaid [diagram.mmd|-]` (or stdin) |
 | Snapshots | `snapshot save\|list\|restore <name>` |
-| Share link | `share` (encrypted upload → excalidraw.com URL) |
+| Share link | `share` (only after an explicit user request; encrypted upload → excalidraw.com URL) |
 | Wipe canvas | `clear --yes` |
 | Install / upgrade this skill | `install-skill --dir <skills-root>` (agent chooses project/global root) |
 
@@ -117,7 +126,7 @@ Excalidraw diagrams are visual communication. If text is cut off, elements overl
 
 ### Quality Checklist
 
-After each `add` / `apply` / `batch_create_elements`, take a screenshot and check:
+After each `add` / `apply` / `batch_create_elements`, run `describe` / `describe_scene`, render with `screenshot` / `get_canvas_screenshot`, and check:
 
 1. **Text truncation** — Is all label text fully visible? Truncated text means the shape is too small. Increase `width` and/or `height`.
 2. **Overlap** — Do any shapes share the same space? Background zones must fully contain children with padding.
@@ -127,7 +136,7 @@ After each `add` / `apply` / `batch_create_elements`, take a screenshot and chec
 6. **Readability** — Font size ≥ 16 for body text, ≥ 20 for titles.
 7. **Zone label placement** — If you used `text`/`label.text` on a background zone rectangle, the zone label will be centered in the middle of the zone, overlapping everything inside. Fix: delete the bound text element and add a free-standing text element at the top of the zone instead (see Layout Anti-Patterns above).
 
-If you find any issue: **stop, fix it, re-screenshot, then continue.** Say "I see [issue], fixing it" rather than glossing over problems. Only proceed once all checks pass.
+If you find any issue: **stop, fix it, re-describe, re-render, then continue.** Say "I see [issue], fixing it" rather than glossing over problems. Only proceed once both structural and visual checks pass.
 
 ---
 
@@ -141,11 +150,11 @@ If you find any issue: **stop, fix it, re-screenshot, then continue.** Say "I se
 
 ### Steps (CLI shown; MCP tools are 1:1 — see cheatsheet)
 
-1. Plan your coordinate grid — map out tiers and x-positions before writing JSON. (MCP mode: call `read_diagram_guide` for colors/sizing; the same guidance lives in `references/cheatsheet.md`.)
-2. Optional fresh start: `npx -y mcp-excalidraw-server clear --yes`
+1. After inspecting relevant source and design artifacts, plan the diagram's audience, message, tiers, connections, and coordinate grid before writing JSON. (MCP mode: call `read_diagram_guide` for colors/sizing; the same guidance lives in `references/cheatsheet.md`.)
+2. Optional fresh start: `npx -y mcp-excalidraw-server@2.1.2 clear --yes`
 3. Create shapes and arrows in one call. Custom `id` fields (e.g. `"id": "auth-svc"`) make later updates easy:
    ```bash
-   npx -y mcp-excalidraw-server add - <<'EOF'
+   npx -y mcp-excalidraw-server@2.1.2 add - <<'EOF'
    [
      {"id": "lb", "type": "rectangle", "x": 300, "y": 50, "width": 180, "height": 60, "text": "Load Balancer"},
      {"id": "svc-a", "type": "rectangle", "x": 100, "y": 200, "width": 160, "height": 60, "text": "Web Server 1"},
@@ -160,7 +169,7 @@ If you find any issue: **stop, fix it, re-screenshot, then continue.** Say "I se
    ```
    (The `-` positional is optional — with no file argument, `add` reads stdin.)
 4. Set shape widths using `max(160, labelLength * 12)`.
-5. `screenshot` → view the file → run the Quality Checklist → fix issues before the next batch.
+5. Run `describe` to verify structure and connections, then run `screenshot` and view the rendered image. Apply the Quality Checklist, fix any issues, and repeat both inspections before the next batch.
 
 ---
 
@@ -206,9 +215,10 @@ Pairing `describe` with `screenshot` is what makes this skill powerful.
 **Feedback loop:**
 ```
 add elements
+  → describe → verify ids, labels, and connections
   → screenshot → view → "text truncated on auth-svc"
-  → update auth-svc --set '{"width": 220}' → screenshot → "overlap between auth-svc and rate-limiter"
-  → update rate-limiter --set '{"x": 520}' → screenshot → "all checks pass"
+  → update auth-svc --set '{"width": 220}' → describe → screenshot → "overlap between auth-svc and rate-limiter"
+  → update rate-limiter --set '{"x": 520}' → describe → screenshot → "all structural and visual checks pass"
   → proceed
 ```
 
@@ -217,7 +227,7 @@ add elements
 1. `describe` to understand current state — note element IDs and positions.
 2. Identify elements by `id` or label text (not by x/y coordinates — they change).
 3. `update <id> --set '{...}'` to resize/recolor/move; `delete <id>` to remove; or bundle everything in one `apply` patch. **Bound arrows re-route automatically when you move or resize their endpoints** — no need to delete and recreate them.
-4. `screenshot` to confirm the change looks right.
+4. Run `describe` to confirm the intended structure, then `screenshot` to confirm the change looks right. Fix defects and repeat both checks until they pass.
 5. If updates fail: check the ID exists with `get <id>`; unlock with `arrange unlock --ids <id>` if locked.
 
 ## Workflow: Mermaid Conversion
@@ -225,27 +235,27 @@ add elements
 ```bash
 echo 'graph TD
   A[Client] --> B[API]
-  B --> C[(DB)]' | npx -y mcp-excalidraw-server mermaid
+  B --> C[(DB)]' | npx -y mcp-excalidraw-server@2.1.2 mermaid
 ```
-Requires an open browser tab (conversion runs in the frontend; exit code 4 tells you to open the canvas URL). Afterwards `screenshot` to verify layout. If the auto-layout is poor (nodes crowded, edges crossing), find problem elements with `describe` and reposition them with `update`.
+Requires an open browser tab (conversion runs in the frontend; exit code 4 tells you to open the canvas URL). Afterwards run `describe` and `screenshot` to verify structure and layout. If the auto-layout is poor (nodes crowded, edges crossing), reposition problem elements with `update`, then repeat both checks.
 
 ## Workflow: File I/O
 
-- Export scene: `export --out diagram.excalidraw` (no `--out` → JSON to stdout)
-- Import scene: `import diagram.excalidraw` (append) or `import diagram.excalidraw --replace`
-- Image: `screenshot --out diagram.png` / `screenshot --format svg --out diagram.svg` (headless; SVGs embed their fonts)
-- Offline: `render diagram.excalidraw --out diagram.png` renders a saved file without the canvas server (CI-friendly, same flags as `screenshot`)
-- Share link: `share` — encrypts the scene and returns a shareable excalidraw.com URL
+- Durable project source: `export --out docs/diagrams/<name>.excalidraw` (no `--out` → JSON to stdout)
+- Continue an existing project diagram: `import docs/diagrams/<name>.excalidraw --replace`, edit it, run the describe-and-render correction loop, then export it back to the same source path
+- Durable project preview: `screenshot --out docs/diagrams/<name>.png` / `screenshot --format svg --out docs/diagrams/<name>.svg` (headless; SVGs embed their fonts)
+- Offline preview: `render docs/diagrams/<name>.excalidraw --out docs/diagrams/<name>.png` renders a saved file without the canvas server (CI-friendly, same flags as `screenshot`)
+- External share link: `share` is forbidden unless the user explicitly requests a hosted link and is told that encrypted scene data will be uploaded
 
-This is how diagrams live in a repo: commit the `.excalidraw` file, and re-`import` + edit + `export` it when the architecture changes.
+This is how diagrams live in this repository: keep the authoritative `.excalidraw` file and same-basename previews under `docs/diagrams/`, and re-`import` + edit + `export` the source when the architecture changes.
 
 ### Obsidian vaults: use `.excalidraw.md`
 
 Check the destination before writing: if any ancestor directory contains `.obsidian/`, it is an Obsidian vault. A raw `.excalidraw` file there opens in the Excalidraw plugin only in **compatibility mode** ("Convert to new format" warning), gets no block references or vault-wide search, and default Obsidian Sync skips non-`.md` files. Give the export a `.excalidraw.md` extension and the CLI writes the plugin's native format automatically:
 
 ```bash
-npx -y mcp-excalidraw-server export --out "$VAULT/diagrams/system-map.excalidraw.md"   # .md → Obsidian format (or force with --format obsidian)
-npx -y mcp-excalidraw-server import "$VAULT/diagrams/system-map.excalidraw.md" --replace  # reads both plain and compressed Drawing blocks
+npx -y mcp-excalidraw-server@2.1.2 export --out "$VAULT/diagrams/system-map.excalidraw.md"   # .md → Obsidian format (or force with --format obsidian)
+npx -y mcp-excalidraw-server@2.1.2 import "$VAULT/diagrams/system-map.excalidraw.md" --replace  # reads both plain and compressed Drawing blocks
 ```
 
 Round-trips are safe: text-element block references follow the plugin's own id rules, so re-importing, editing, and re-exporting the same file keeps links from other notes intact.
