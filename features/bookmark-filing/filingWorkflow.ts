@@ -28,6 +28,11 @@ export interface FilingFolderTree {
   loadSnapshot(): Promise<CandidateFolderSnapshot>;
 }
 
+export interface FilingBookmarkAccess {
+  getBookmark(bookmarkId: string): Promise<CreatedBookmark | null>;
+  moveBookmark(bookmarkId: string, destinationFolderId: string): Promise<void>;
+}
+
 export interface FilingCandidateBuilder {
   build(
     destinationRootIds: readonly string[],
@@ -42,7 +47,7 @@ export type FilingWorkflowResult =
         'below-confidence-threshold' | ClassificationUnresolvedCategory;
     }
   | {
-      readonly kind: 'ready-to-file';
+      readonly kind: 'filed';
       readonly bookmarkId: string;
       readonly folderId: string;
       readonly confidence: number;
@@ -50,6 +55,7 @@ export type FilingWorkflowResult =
 
 export interface FilingWorkflowDependencies {
   readonly configuration: FilingConfigurationReader;
+  readonly bookmarks: FilingBookmarkAccess;
   readonly folderTree: FilingFolderTree;
   readonly candidateBuilder: FilingCandidateBuilder;
   readonly classifier: BookmarkClassifier;
@@ -81,6 +87,38 @@ function hasCandidates(result: DestinationCandidateBuildResult): result is {
   readonly candidates: readonly DestinationCandidate[];
 } {
   return result.ok && result.candidates.length > 0;
+}
+
+function configurationsMatch(
+  first: FilingConfiguration,
+  second: FilingConfiguration,
+): boolean {
+  return (
+    first.version === second.version &&
+    first.inboxFolderId === second.inboxFolderId &&
+    first.openAiApiKey === second.openAiApiKey &&
+    first.model === second.model &&
+    first.confidenceThreshold === second.confidenceThreshold &&
+    first.destinationRootIds.length === second.destinationRootIds.length &&
+    first.destinationRootIds.every(
+      (rootId, index) => rootId === second.destinationRootIds[index],
+    )
+  );
+}
+
+function isEligibleDestination(
+  folderId: string,
+  configuration: FilingConfiguration,
+  snapshot: CandidateFolderSnapshot,
+): boolean {
+  if (snapshot.findStaleFolderIds([folderId]).length > 0) {
+    return false;
+  }
+
+  return configuration.destinationRootIds.some(
+    (rootId) =>
+      rootId === folderId || snapshot.isFolderAncestor(rootId, folderId),
+  );
 }
 
 export class FilingWorkflow {
@@ -124,15 +162,66 @@ export class FilingWorkflow {
       model: configuration.model,
     });
 
-    return evaluateClassification(bookmark.id, configuration, result);
+    const evaluated = evaluateClassification(
+      bookmark.id,
+      configuration,
+      result,
+    );
+
+    if (evaluated.kind !== 'ready-to-file') {
+      return evaluated;
+    }
+
+    const currentBookmark = await this.dependencies.bookmarks.getBookmark(
+      bookmark.id,
+    );
+    if (currentBookmark?.parentId !== configuration.inboxFolderId) {
+      return { kind: 'ineligible' };
+    }
+
+    const currentConfiguration = await this.dependencies.configuration.load();
+    if (
+      currentConfiguration === null ||
+      !configurationsMatch(configuration, currentConfiguration)
+    ) {
+      return { kind: 'ineligible' };
+    }
+
+    const currentSnapshot = await this.dependencies.folderTree.loadSnapshot();
+    if (
+      !hasValidConfiguredFolders(currentConfiguration, currentSnapshot) ||
+      !isEligibleDestination(
+        evaluated.folderId,
+        currentConfiguration,
+        currentSnapshot,
+      )
+    ) {
+      return { kind: 'ineligible' };
+    }
+
+    await this.dependencies.bookmarks.moveBookmark(
+      bookmark.id,
+      evaluated.folderId,
+    );
+
+    return { ...evaluated, kind: 'filed' };
   }
 }
+
+type ClassificationEvaluation =
+  | Exclude<FilingWorkflowResult, { readonly kind: 'filed' }>
+  | {
+      readonly kind: 'ready-to-file';
+      readonly bookmarkId: string;
+      readonly folderId: string;
+      readonly confidence: number;
+    };
 
 function evaluateClassification(
   bookmarkId: string,
   configuration: FilingConfiguration,
   result: BookmarkClassificationResult,
-): FilingWorkflowResult {
+): ClassificationEvaluation {
   if (result.kind === 'unresolved') {
     return { kind: 'unresolved', reason: result.category };
   }

@@ -27,12 +27,17 @@ const candidates = [
 
 function createSnapshot(
   staleFolderIds: readonly string[] = [],
+  isFolderAncestor: CandidateFolderSnapshot['isFolderAncestor'] = (
+    ancestorFolderId,
+    descendantFolderId,
+  ) =>
+    ancestorFolderId === 'destinations' && descendantFolderId === 'engineering',
 ): CandidateFolderSnapshot {
   return {
     enumerateFolders: () => [],
     findStaleFolderIds: (folderIds) =>
       folderIds.filter((folderId) => staleFolderIds.includes(folderId)),
-    isFolderAncestor: () => false,
+    isFolderAncestor,
   };
 }
 
@@ -41,6 +46,15 @@ function createDependencies(
 ): FilingWorkflowDependencies {
   return {
     configuration: { load: vi.fn(async () => configuration) },
+    bookmarks: {
+      getBookmark: vi.fn(async () => ({
+        id: 'bookmark-1',
+        title: 'Current bookmark',
+        parentId: 'inbox',
+        url: 'https://example.com',
+      })),
+      moveBookmark: vi.fn(async () => undefined),
+    },
     folderTree: { loadSnapshot: vi.fn(async () => createSnapshot()) },
     candidateBuilder: {
       build: vi.fn(async () => ({ ok: true as const, candidates })),
@@ -69,7 +83,7 @@ describe('FilingWorkflow initial eligibility', () => {
         url: 'https://www.typescriptlang.org/',
       }),
     ).resolves.toEqual({
-      kind: 'ready-to-file',
+      kind: 'filed',
       bookmarkId: 'bookmark-1',
       folderId: 'engineering',
       confidence: 0.9,
@@ -212,7 +226,7 @@ describe('FilingWorkflow confidence gate', () => {
     {
       confidence: 0.8,
       expected: {
-        kind: 'ready-to-file',
+        kind: 'filed',
         bookmarkId: 'bookmark-1',
         folderId: 'engineering',
         confidence: 0.8,
@@ -221,7 +235,7 @@ describe('FilingWorkflow confidence gate', () => {
     {
       confidence: 0.81,
       expected: {
-        kind: 'ready-to-file',
+        kind: 'filed',
         bookmarkId: 'bookmark-1',
         folderId: 'engineering',
         confidence: 0.81,
@@ -275,4 +289,107 @@ describe('FilingWorkflow confidence gate', () => {
       ).resolves.toEqual({ kind: 'unresolved', reason: category });
     },
   );
+});
+
+describe('FilingWorkflow movement revalidation', () => {
+  const createdBookmark = {
+    id: 'bookmark-1',
+    title: 'TypeScript',
+    parentId: 'inbox',
+    url: 'https://www.typescriptlang.org/',
+  } as const;
+
+  it('moves the same bookmark after fresh state remains valid', async () => {
+    const dependencies = createDependencies();
+    const workflow = new FilingWorkflow(dependencies);
+
+    await expect(
+      workflow.processCreatedBookmark(createdBookmark),
+    ).resolves.toEqual({
+      kind: 'filed',
+      bookmarkId: 'bookmark-1',
+      folderId: 'engineering',
+      confidence: 0.9,
+    });
+    expect(dependencies.configuration.load).toHaveBeenCalledTimes(2);
+    expect(dependencies.folderTree.loadSnapshot).toHaveBeenCalledTimes(2);
+    expect(dependencies.bookmarks.getBookmark).toHaveBeenCalledWith(
+      'bookmark-1',
+    );
+    expect(dependencies.bookmarks.moveBookmark).toHaveBeenCalledWith(
+      'bookmark-1',
+      'engineering',
+    );
+  });
+
+  it('does not move a bookmark manually moved during classification', async () => {
+    const dependencies = createDependencies({
+      bookmarks: {
+        getBookmark: vi.fn(async () => ({
+          ...createdBookmark,
+          parentId: 'manually-filed',
+        })),
+        moveBookmark: vi.fn(async () => undefined),
+      },
+    });
+
+    await expect(
+      new FilingWorkflow(dependencies).processCreatedBookmark(createdBookmark),
+    ).resolves.toEqual({ kind: 'ineligible' });
+    expect(dependencies.bookmarks.moveBookmark).not.toHaveBeenCalled();
+  });
+
+  it('does not move anything when the bookmark was deleted', async () => {
+    const dependencies = createDependencies({
+      bookmarks: {
+        getBookmark: vi.fn(async () => null),
+        moveBookmark: vi.fn(async () => undefined),
+      },
+    });
+
+    await expect(
+      new FilingWorkflow(dependencies).processCreatedBookmark(createdBookmark),
+    ).resolves.toEqual({ kind: 'ineligible' });
+    expect(dependencies.bookmarks.moveBookmark).not.toHaveBeenCalled();
+  });
+
+  it('does not move when configuration changed during classification', async () => {
+    const changedConfiguration = { ...configuration, confidenceThreshold: 0.9 };
+    const load = vi
+      .fn<FilingWorkflowDependencies['configuration']['load']>()
+      .mockResolvedValueOnce(configuration)
+      .mockResolvedValueOnce(changedConfiguration);
+    const dependencies = createDependencies({ configuration: { load } });
+
+    await expect(
+      new FilingWorkflow(dependencies).processCreatedBookmark(createdBookmark),
+    ).resolves.toEqual({ kind: 'ineligible' });
+    expect(dependencies.bookmarks.moveBookmark).not.toHaveBeenCalled();
+  });
+
+  it('does not move when the selected destination was deleted', async () => {
+    const loadSnapshot = vi
+      .fn<FilingWorkflowDependencies['folderTree']['loadSnapshot']>()
+      .mockResolvedValueOnce(createSnapshot())
+      .mockResolvedValueOnce(createSnapshot(['engineering']));
+    const dependencies = createDependencies({ folderTree: { loadSnapshot } });
+
+    await expect(
+      new FilingWorkflow(dependencies).processCreatedBookmark(createdBookmark),
+    ).resolves.toEqual({ kind: 'ineligible' });
+    expect(dependencies.bookmarks.moveBookmark).not.toHaveBeenCalled();
+  });
+
+  it('does not move when the selected destination leaves the allowed roots', async () => {
+    const loadSnapshot = vi
+      .fn<FilingWorkflowDependencies['folderTree']['loadSnapshot']>()
+      .mockResolvedValueOnce(createSnapshot())
+      .mockResolvedValueOnce(createSnapshot([], () => false));
+    const dependencies = createDependencies({ folderTree: { loadSnapshot } });
+
+    await expect(
+      new FilingWorkflow(dependencies).processCreatedBookmark(createdBookmark),
+    ).resolves.toEqual({ kind: 'ineligible' });
+    expect(dependencies.bookmarks.moveBookmark).not.toHaveBeenCalled();
+  });
 });

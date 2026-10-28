@@ -15,6 +15,11 @@ export interface BookmarkFolder {
 
 export interface ChromeBookmarksApi {
   getTree(): Promise<readonly BookmarkTreeNode[]>;
+  get(bookmarkId: string): Promise<readonly BookmarkTreeNode[]>;
+  move(
+    bookmarkId: string,
+    destination: { readonly parentId: string },
+  ): Promise<BookmarkTreeNode>;
 }
 
 function appendPath(parentPath: string | undefined, title: string): string {
@@ -116,6 +121,18 @@ export class ChromeBookmarkTreeAdapter {
 
   async loadSnapshot(): Promise<BookmarkTreeSnapshot> {
     return new BookmarkTreeSnapshot(await this.bookmarks.getTree());
+  }
+
+  async getBookmark(bookmarkId: string): Promise<BookmarkTreeNode | null> {
+    const [bookmark] = await this.bookmarks.get(bookmarkId);
+    return bookmark ?? null;
+  }
+
+  async moveBookmark(
+    bookmarkId: string,
+    destinationFolderId: string,
+  ): Promise<void> {
+    await this.bookmarks.move(bookmarkId, { parentId: destinationFolderId });
   }
 }
 

@@ -47,6 +47,8 @@ describe('ChromeBookmarkTreeAdapter', () => {
   it('loads a fresh snapshot from the Chrome bookmarks API', async () => {
     const bookmarks: ChromeBookmarksApi = {
       getTree: vi.fn(async () => nestedTree),
+      get: vi.fn(async () => []),
+      move: vi.fn(async () => nestedTree[0]!),
     };
     const adapter = new ChromeBookmarkTreeAdapter(bookmarks);
 
@@ -58,6 +60,41 @@ describe('ChromeBookmarkTreeAdapter', () => {
       parentId: 'bar',
       path: 'Bookmarks bar/Inbox',
     });
+  });
+
+  it('re-reads and moves a bookmark by stable ID', async () => {
+    const bookmark = {
+      id: 'bookmark-1',
+      title: 'Example',
+      parentId: 'inbox',
+      url: 'https://example.com',
+    };
+    const bookmarks: ChromeBookmarksApi = {
+      getTree: vi.fn(async () => nestedTree),
+      get: vi.fn(async () => [bookmark]),
+      move: vi.fn(async () => ({ ...bookmark, parentId: 'engineering' })),
+    };
+    const adapter = new ChromeBookmarkTreeAdapter(bookmarks);
+
+    await expect(adapter.getBookmark('bookmark-1')).resolves.toEqual(bookmark);
+    await adapter.moveBookmark('bookmark-1', 'engineering');
+
+    expect(bookmarks.get).toHaveBeenCalledWith('bookmark-1');
+    expect(bookmarks.move).toHaveBeenCalledWith('bookmark-1', {
+      parentId: 'engineering',
+    });
+  });
+
+  it('returns null when a bookmark no longer exists', async () => {
+    const bookmarks: ChromeBookmarksApi = {
+      getTree: vi.fn(async () => nestedTree),
+      get: vi.fn(async () => []),
+      move: vi.fn(async () => nestedTree[0]!),
+    };
+
+    await expect(
+      new ChromeBookmarkTreeAdapter(bookmarks).getBookmark('deleted'),
+    ).resolves.toBeNull();
   });
 });
 
