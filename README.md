@@ -34,6 +34,13 @@ files under `.wxt/`.
 | `pnpm test`            | Run colocated unit tests in Node                    |
 | `pnpm validate`        | Run formatting, linting, type checking, and tests   |
 
+## Local Excalidraw Diagramming
+
+This repository provides project-local Excalidraw support for OpenCode agents,
+using a loopback-only canvas and pinned tooling. See the
+[Excalidraw guide](docs/excalidraw.md) for installation, operation, security,
+troubleshooting, upgrades, and rollback.
+
 ## Review OpenSpec Artifacts
 
 Run `pnpm openspec:review` to start the VitePress review site and open it in your
