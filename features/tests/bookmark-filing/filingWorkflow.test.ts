@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { CandidateFolderSnapshot } from '../../bookmark-filing/candidateBuilder';
+import { CLASSIFICATION_UNRESOLVED_CATEGORIES } from '../../bookmark-filing/classification';
 import {
   FILING_CONFIGURATION_VERSION,
   type FilingConfiguration,
@@ -68,12 +69,10 @@ describe('FilingWorkflow initial eligibility', () => {
         url: 'https://www.typescriptlang.org/',
       }),
     ).resolves.toEqual({
-      kind: 'classified',
-      result: {
-        kind: 'success',
-        folderId: 'engineering',
-        confidence: 0.9,
-      },
+      kind: 'ready-to-file',
+      bookmarkId: 'bookmark-1',
+      folderId: 'engineering',
+      confidence: 0.9,
     });
     expect(dependencies.classifier.classify).toHaveBeenCalledWith({
       title: 'TypeScript',
@@ -199,4 +198,81 @@ describe('FilingWorkflow initial eligibility', () => {
     ).resolves.toEqual({ kind: 'ineligible' });
     expect(dependencies.classifier.classify).not.toHaveBeenCalled();
   });
+});
+
+describe('FilingWorkflow confidence gate', () => {
+  it.each([
+    {
+      confidence: 0.79,
+      expected: {
+        kind: 'unresolved',
+        reason: 'below-confidence-threshold',
+      },
+    },
+    {
+      confidence: 0.8,
+      expected: {
+        kind: 'ready-to-file',
+        bookmarkId: 'bookmark-1',
+        folderId: 'engineering',
+        confidence: 0.8,
+      },
+    },
+    {
+      confidence: 0.81,
+      expected: {
+        kind: 'ready-to-file',
+        bookmarkId: 'bookmark-1',
+        folderId: 'engineering',
+        confidence: 0.81,
+      },
+    },
+  ])(
+    'evaluates confidence $confidence against the inclusive threshold',
+    async ({ confidence, expected }) => {
+      const dependencies = createDependencies({
+        classifier: {
+          classify: vi.fn(async () => ({
+            kind: 'success' as const,
+            folderId: 'engineering',
+            confidence,
+          })),
+        },
+      });
+      const workflow = new FilingWorkflow(dependencies);
+
+      await expect(
+        workflow.processCreatedBookmark({
+          id: 'bookmark-1',
+          title: 'Threshold test',
+          parentId: 'inbox',
+          url: 'https://example.com',
+        }),
+      ).resolves.toEqual(expected);
+    },
+  );
+
+  it.each(CLASSIFICATION_UNRESOLVED_CATEGORIES)(
+    'leaves the bookmark unresolved for classifier category %s',
+    async (category) => {
+      const dependencies = createDependencies({
+        classifier: {
+          classify: vi.fn(async () => ({
+            kind: 'unresolved' as const,
+            category,
+          })),
+        },
+      });
+      const workflow = new FilingWorkflow(dependencies);
+
+      await expect(
+        workflow.processCreatedBookmark({
+          id: 'bookmark-1',
+          title: 'Unresolved classification',
+          parentId: 'inbox',
+          url: 'https://example.com',
+        }),
+      ).resolves.toEqual({ kind: 'unresolved', reason: category });
+    },
+  );
 });

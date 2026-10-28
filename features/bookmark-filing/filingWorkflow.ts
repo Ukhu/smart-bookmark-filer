@@ -2,6 +2,7 @@ import type { CandidateFolderSnapshot } from './candidateBuilder';
 import type {
   BookmarkClassifier,
   BookmarkClassificationResult,
+  ClassificationUnresolvedCategory,
 } from './classification';
 import {
   validateSourceDestinationBoundaries,
@@ -33,11 +34,18 @@ export interface FilingCandidateBuilder {
   ): Promise<DestinationCandidateBuildResult>;
 }
 
-export type InitialFilingResult =
+export type FilingWorkflowResult =
   | { readonly kind: 'ineligible' }
   | {
-      readonly kind: 'classified';
-      readonly result: BookmarkClassificationResult;
+      readonly kind: 'unresolved';
+      readonly reason:
+        'below-confidence-threshold' | ClassificationUnresolvedCategory;
+    }
+  | {
+      readonly kind: 'ready-to-file';
+      readonly bookmarkId: string;
+      readonly folderId: string;
+      readonly confidence: number;
     };
 
 export interface FilingWorkflowDependencies {
@@ -80,7 +88,7 @@ export class FilingWorkflow {
 
   async processCreatedBookmark(
     bookmark: CreatedBookmark,
-  ): Promise<InitialFilingResult> {
+  ): Promise<FilingWorkflowResult> {
     if (bookmark.url === undefined) {
       return { kind: 'ineligible' };
     }
@@ -116,6 +124,27 @@ export class FilingWorkflow {
       model: configuration.model,
     });
 
-    return { kind: 'classified', result };
+    return evaluateClassification(bookmark.id, configuration, result);
   }
+}
+
+function evaluateClassification(
+  bookmarkId: string,
+  configuration: FilingConfiguration,
+  result: BookmarkClassificationResult,
+): FilingWorkflowResult {
+  if (result.kind === 'unresolved') {
+    return { kind: 'unresolved', reason: result.category };
+  }
+
+  if (result.confidence < configuration.confidenceThreshold) {
+    return { kind: 'unresolved', reason: 'below-confidence-threshold' };
+  }
+
+  return {
+    kind: 'ready-to-file',
+    bookmarkId,
+    folderId: result.folderId,
+    confidence: result.confidence,
+  };
 }
