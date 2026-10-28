@@ -53,6 +53,16 @@ Install the package's `excalidraw-skill` into `.opencode/skills/`, then review a
 
 Referencing an unversioned remote skill was rejected because it would not be reviewable or reproducible. Writing only a short custom prompt was rejected because the upstream skill already captures tool-specific layout and verification practices.
 
+### Make diagramming an exploration instrument, not a separate workflow phase
+
+Adapt the project-local `/opsx-explore` guidance so it may invoke the Excalidraw skill when a visual model would help the user and agent investigate architecture, compare alternatives, or clarify a proposal. The exploration stance remains in control: the agent continues asking grounded questions, challenging assumptions, and inspecting relevant project context while the diagram skill supplies canvas-specific operations.
+
+Treat local in-memory canvas mutations as transient exploratory state rather than implementation or repository file changes. An explicit user request to create or revise a diagram authorizes that transient drawing session, including repeated describe-render-correct cycles. It does not authorize an export, a hosted share, an OpenSpec artifact edit, or any other repository change.
+
+Before persisting a diagram, the agent must identify the proposed `.excalidraw` source and any preview files, explain that they will become durable repository artifacts, and obtain explicit user approval. Capturing resulting decisions in `proposal.md`, `design.md`, specs, or tasks remains a separate action governed by the existing exploration confirmation rules. This allows visual thinking to remain fluid without silently converting a sketch into project state.
+
+A workflow that forces users to leave `/opsx-explore` before drawing was rejected because it discards the constructive discovery instructions that make the visual iteration useful. Automatically exporting every exploratory canvas was rejected because early sketches may be incomplete, misleading, or disposable.
+
 ### Treat `.excalidraw` as source and rendered images as review artifacts
 
 Create `docs/diagrams/` with a short README that defines naming and lifecycle conventions. The editable `.excalidraw` file is authoritative. A PNG or SVG with the same basename may be committed when it improves repository browsing or documentation, but agents must update it from the editable source.

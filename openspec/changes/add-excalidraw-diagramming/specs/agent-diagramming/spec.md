@@ -39,6 +39,21 @@ The integration SHALL let an agent create and modify diagram elements, inspect a
 - **WHEN** inspection reveals overlapping elements, clipped labels, or unclear connections
 - **THEN** the agent can update the affected elements and render the revised scene again
 
+### Requirement: Diagram-assisted OpenSpec exploration
+The project-provided `/opsx-explore` guidance SHALL be able to use the local diagramming integration as an interactive visual reasoning instrument while preserving its constructive discovery behavior and its separation from implementation.
+
+#### Scenario: Explore architecture visually
+- **WHEN** a user asks during `/opsx-explore` to create or revise an architectural diagram
+- **THEN** the agent can inspect relevant context, operate a transient local canvas, discuss the rendered result with the user, and iteratively revise it without leaving exploration mode
+
+#### Scenario: Transient drawing does not imply persistence
+- **WHEN** the user authorizes creation or revision of an exploratory diagram
+- **THEN** that authorization covers the transient local drawing session but does not authorize repository file changes, OpenSpec artifact edits, or external sharing
+
+#### Scenario: Persist an exploratory diagram
+- **WHEN** an exploratory diagram becomes useful as durable project documentation
+- **THEN** the agent identifies the proposed editable source and preview paths and obtains explicit user approval before exporting them to the repository
+
 ### Requirement: Durable editable diagram artifacts
 The integration SHALL support exporting an editable `.excalidraw` source under `docs/diagrams/`, re-importing that source for later refinement, and rendering a reviewable image from the saved source.
 

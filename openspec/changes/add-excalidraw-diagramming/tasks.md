@@ -5,7 +5,8 @@
 - [ ] 1.1 Add root `opencode.jsonc` using OpenCode V2 `mcp.servers` syntax to launch `mcp-excalidraw-server@2.1.2` on loopback with repository-scoped exports, and verify `opencode mcp list` reports the project server as connected without changing user-global configuration
 - [ ] 1.2 Install the matching upstream `excalidraw-skill` under `.opencode/skills/`, record its upstream version, and verify OpenCode discovers its `SKILL.md` from this repository
 - [ ] 1.3 Adapt the project skill to pin every package invocation, require source/design inspection plus a describe-and-render correction loop, export durable files under `docs/diagrams/`, and gate external sharing; verify searches find no unversioned invocation or unconditional share instruction
-- [ ] 1.4 Document installation, first-run registry access, canvas startup, loopback security, MCP status checks, port-conflict diagnostics, package/skill upgrades, and rollback in `README.md`, and verify every documented command matches the project configuration
+- [ ] 1.4 Adapt the project-local `/opsx-explore` guidance to invoke the diagram skill for user-requested visual exploration, treat in-memory canvas work as transient exploratory state, and require separate explicit approval naming each durable export path; verify a guided architecture discussion can complete multiple draw-inspect-revise cycles without leaving explore mode or writing repository files
+- [ ] 1.5 Document installation, first-run registry access, canvas startup, loopback security, MCP status checks, port-conflict diagnostics, package/skill upgrades, and rollback in `README.md`, and verify every documented command matches the project configuration
 
 ## 2. Durable diagram artifacts
 
