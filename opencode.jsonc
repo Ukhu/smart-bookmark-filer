@@ -1,0 +1,18 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "excalidraw": {
+        "type": "local",
+        "command": ["npx", "-y", "mcp-excalidraw-server@2.1.2"],
+        "cwd": ".",
+        "environment": {
+          "HOST": "127.0.0.1",
+          "PORT": "3000",
+          "EXPRESS_SERVER_URL": "http://127.0.0.1:3000",
+          "EXCALIDRAW_EXPORT_DIR": "."
+        }
+      }
+    }
+  }
+}
