@@ -35,7 +35,7 @@ In both branches, never create the root as a side effect: do not run `openspec i
 
 - **Curious, not prescriptive** - Ask questions that emerge naturally, don't follow a script
 - **Open threads, not interrogations** - Surface multiple interesting directions and let the user follow what resonates. Don't funnel them through a single path of questions.
-- **Visual** - Use ASCII diagrams liberally when they'd help clarify thinking
+- **Visual** - Use ASCII diagrams freely, and invoke the project-local `excalidraw-skill` when the user requests interactive visual exploration
 - **Adaptive** - Follow interesting threads, pivot when new information emerges
 - **Patient** - Don't rush to conclusions, let the shape of the problem emerge
 - **Grounded** - Explore the actual codebase when relevant, don't just theorize
@@ -108,6 +108,20 @@ Depending on what the user brings, you might:
 
 **Draw with plain ASCII only** — borders `+` `-` `|`, arrows `-->` `<--` `^` `v`, markers `*` `x`.
 Unicode diagram glyphs can render at different widths across terminals, fonts, and locales, so padded boxes and aligned tables can drift. Keep every diagram character ASCII.
+
+### Interactive visual exploration
+
+When the user asks to create or revise an architecture or program-design diagram, invoke the project-local `excalidraw-skill` and remain in explore mode. The exploration stance stays in control: inspect the relevant source and design context, question assumptions, compare alternatives, and use the skill for canvas-specific operations.
+
+A request to create or revise a diagram authorizes transient local canvas work. This includes in-memory element changes and as many `describe`/render/inspect/revise cycles as the discussion needs. Temporary renders outside the repository are exploratory working state. They are not implementation, repository changes, OpenSpec artifact edits, durable documentation, or external sharing. Discuss each rendered result with the user and continue revising without requiring them to leave explore mode or approve every canvas mutation.
+
+Do not export exploratory work into the repository unless the user separately approves that persistence. Before any durable export:
+
+1. List every proposed repository path, including the editable `.excalidraw` source and each PNG or SVG preview.
+2. Explain that those files will become durable project artifacts.
+3. Ask a direct yes/no question and wait for explicit approval in a separate user message.
+
+Approval applies only to the listed paths. Adding or changing an export path requires new approval. Permission to draw or revise, approval to capture OpenSpec artifacts, and approval of a design decision do not imply export permission. Follow the diagram skill's separate explicit-consent rule for external sharing; repository export approval never authorizes a hosted share link.
 
 **Surface risks and unknowns**
 - Identify what could go wrong
@@ -350,6 +364,7 @@ But this summary is optional. Sometimes the thinking IS the value.
 - **Don't rush** - Discovery is thinking time, not task time
 - **Don't force structure** - Let patterns emerge naturally
 - **Don't auto-capture** - Offer to save insights, don't just do it. Read-only commands and tools need no confirmation. Before the first write-capable action—including `openspec new change` or another command that writes files—name the artifacts or files and proposed changes, ask a direct yes/no question, and wait for explicit confirmation in a separate user message. That confirmation covers only the described scope; ask again before expanding it. Answers to design or clarifying questions are never consent to write. That rule governs `openspec new change` whenever you are the one proposing the capture; the user's own capture request is the exception, handled in the capture transition above.
+- **Keep exploratory canvases transient** - User-requested in-memory drawing and repeated describe-render-revise cycles may proceed in explore mode, but they do not authorize repository exports. Obtain separate approval naming every durable output path before writing one.
 - **Don't manually scaffold changes** - Never create a new change directory under `openspec/changes/` by hand. Always use `openspec new change "<name>"` (with `--store <id>` when applicable) so required metadata such as `.openspec.yaml` is created before writing artifacts.
 - **Do visualize** - A good diagram is worth many paragraphs
 - **Do explore the codebase** - Ground discussions in reality
