@@ -17,5 +17,5 @@
 ## 3. Integration verification
 
 - [x] 3.1 Run a temporary smoke cycle that connects to the project MCP server, creates two labeled shapes and a bound arrow, describes the scene, renders a preview, and exports editable source; verify all expected elements and temporary artifacts exist without adding smoke outputs to `docs/diagrams/`
-- [ ] 3.2 Confirm the canvas listens only on loopback and complete the documented no-sharing workflow; verify no hosted share URL is created and startup/export failures are reported rather than presented as success
-- [ ] 3.3 Run `pnpm validate` and `openspec validate add-excalidraw-diagramming --strict`, and resolve every failure before marking the change implementation complete
+- [x] 3.2 Confirm the canvas listens only on loopback and complete the documented no-sharing workflow; verify no hosted share URL is created and startup/export failures are reported rather than presented as success
+- [x] 3.3 Run `pnpm validate` and `openspec validate add-excalidraw-diagramming --strict`, and resolve every failure before marking the change implementation complete
