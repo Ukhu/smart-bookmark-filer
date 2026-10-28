@@ -108,6 +108,31 @@ The Inbox must remain separate from every destination root:
 - Destination roots may overlap each other. Overlapping roots do not make a
   folder eligible more than once.
 
+### Automatic filing behavior
+
+Automatic filing considers only new URL bookmarks created directly inside the
+configured Inbox. It ignores folders, bookmarks created elsewhere, and
+bookmarks created in folders below the Inbox. Filing remains inactive while the
+configuration is missing or refers to deleted folders.
+
+For an eligible bookmark, the extension requests one classification against
+the currently allowed destinations. It moves the bookmark only when the result
+selects an eligible folder and its confidence is equal to or greater than the
+configured threshold. Low-confidence results, provider or network failures,
+timeouts, invalid responses, and unavailable destinations are unresolved: the
+bookmark remains unchanged in the Inbox.
+
+Before moving, the extension checks the bookmark, configuration, and selected
+destination again. It takes no further action if the bookmark was deleted or
+manually moved, the configuration changed, or the destination was deleted or
+left the allowed roots while classification was running.
+
+Unresolved bookmarks are not retried automatically. Review and file them
+manually. Adding or importing many URL bookmarks directly into the Inbox can
+start a separate paid OpenAI request for each eligible bookmark, including
+overlapping requests. Avoid bulk additions unless that API usage and cost are
+intentional.
+
 ### Local API-key storage
 
 Settings, including the OpenAI API key, are stored in `chrome.storage.local` for
