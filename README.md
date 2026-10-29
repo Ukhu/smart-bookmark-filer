@@ -133,6 +133,36 @@ start a separate paid OpenAI request for each eligible bookmark, including
 overlapping requests. Avoid bulk additions unless that API usage and cost are
 intentional.
 
+### Recent filing activity
+
+The options page's **Recent activity** section shows up to 50 eligible bookmarks
+processed by automatic filing, newest first. History is stored only in
+`chrome.storage.local` for the current Chrome profile and survives options-page,
+background-worker, browser, and extension restarts. It is not synchronized to
+other profiles or browser installations.
+
+Each item can include the bookmark ID and title, created and updated times,
+processing or terminal outcome, a closed safe-reason category, accepted
+confidence, and the destination folder ID and contextual path used at filing
+time. Destination information is a historical snapshot; later folder renames or
+deletions do not rewrite it. Activity never stores or displays bookmark URLs,
+API keys, authorization headers, provider response bodies, or raw exception
+text.
+
+**Processing** means automatic filing is in progress or was interrupted before
+a terminal result could be stored, for example because the background worker
+stopped. Success, unresolved, below-threshold, canceled, and sanitized extension
+error outcomes explain the last recorded result. If no eligible bookmark has
+entered filing evaluation, the section says, **No eligible bookmarks have been
+processed yet.**
+
+Select **Clear history** and confirm to remove the activity currently stored.
+This does not change filing settings or credentials, move or delete bookmarks,
+or clear the API key. Work already in progress can write a later terminal item
+after history is cleared. Activity is diagnostic only: the extension does not
+send browser notifications, retry unresolved bookmarks, or offer automatic or
+manual reclassification from the activity list.
+
 ### Local API-key storage
 
 Settings, including the OpenAI API key, are stored in `chrome.storage.local` for

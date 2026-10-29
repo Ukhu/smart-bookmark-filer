@@ -21,6 +21,10 @@ h1 {
   margin-bottom: 0.25rem;
 }
 
+h2 {
+  margin: 0 0 0.25rem;
+}
+
 .intro,
 .hint {
   color: #586174;
@@ -70,6 +74,11 @@ button.secondary {
   background: white;
 }
 
+button.compact {
+  width: auto;
+  white-space: nowrap;
+}
+
 button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
@@ -85,4 +94,76 @@ button:disabled {
 
 .success {
   color: #176b35;
+}
+
+.activity {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid #d9deea;
+}
+
+.section-heading,
+.activity-item-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.activity-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-item {
+  padding: 1rem;
+  border: 1px solid #d9deea;
+  border-left-width: 0.3rem;
+  border-radius: 0.35rem;
+}
+
+.activity-item p {
+  margin: 0.5rem 0;
+}
+
+.activity-item time {
+  color: #586174;
+  font-size: 0.85rem;
+}
+
+.activity-outcome {
+  flex: 0 0 auto;
+  font-weight: 650;
+}
+
+.activity-processing {
+  border-left-color: #65718a;
+}
+
+.activity-success {
+  border-left-color: #176b35;
+}
+
+.activity-unresolved,
+.activity-canceled {
+  border-left-color: #986c00;
+}
+
+.activity-error {
+  border-left-color: #a11919;
+}
+
+@media (max-width: 36rem) {
+  .section-heading,
+  .activity-item-heading,
+  .actions {
+    flex-direction: column;
+  }
+
+  button.compact {
+    width: 100%;
+  }
 }

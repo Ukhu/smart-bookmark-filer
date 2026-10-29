@@ -13,9 +13,9 @@
 
 ## 3. Recent activity options experience
 
-- [ ] 3.1 Add a focused options activity controller that loads, maps, observes, and clears validated activity independently of configuration; verify feature tests cover newest-first display state, every safe reason label, empty and error states, live updates, clear confirmation, and configuration preservation.
-- [ ] 3.2 Extend the options composition, HTML, TypeScript entrypoint, and CSS with an accessible Recent activity section and clear-history control; verify the production options entrypoint builds and manual UI checks show processing, success, unresolved, canceled, empty, and section-local error states without exposing URLs or raw errors.
-- [ ] 3.3 Document local activity retention, included and excluded data, clearing behavior, processing interruption, and the absence of notifications or retries in `README.md`; verify the documentation matches activity specs and UI wording.
+- [x] 3.1 Add a focused options activity controller that loads, maps, observes, and clears validated activity independently of configuration; verify feature tests cover newest-first display state, every safe reason label, empty and error states, live updates, clear confirmation, and configuration preservation.
+- [x] 3.2 Extend the options composition, HTML, TypeScript entrypoint, and CSS with an accessible Recent activity section and clear-history control; verify the production options entrypoint builds and manual UI checks show processing, success, unresolved, canceled, empty, and section-local error states without exposing URLs or raw errors.
+- [x] 3.3 Document local activity retention, included and excluded data, clearing behavior, processing interruption, and the absence of notifications or retries in `README.md`; verify the documentation matches activity specs and UI wording.
 
 ## 4. Integrated verification
 

@@ -55,6 +55,24 @@
       </form>
 
       <div id="status" role="status" aria-live="polite"></div>
+
+      <section class="activity" aria-labelledby="activity-heading">
+        <div class="section-heading">
+          <div>
+            <h2 id="activity-heading">Recent activity</h2>
+            <p class="hint">
+              Eligible bookmarks processed by automatic filing, newest first.
+            </p>
+          </div>
+          <button id="clear-activity" type="button" class="secondary compact">
+            Clear history
+          </button>
+        </div>
+        <p id="activity-status" role="status" aria-live="polite">
+          Loading recent activity…
+        </p>
+        <ol id="activity-list" class="activity-list"></ol>
+      </section>
     </main>
 
     <script type="module" src="./main.ts"></script>

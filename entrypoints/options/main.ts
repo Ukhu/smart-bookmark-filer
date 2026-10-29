@@ -1,5 +1,12 @@
-import { createFilingOptionsController } from '../../composition/options';
+import {
+  createFilingOptionsController,
+  createOptionsActivityController,
+} from '../../composition/options';
 import type { OptionsViewState } from '../../features/bookmark-filing/optionsController';
+import type {
+  OptionsActivityItem,
+  OptionsActivityViewState,
+} from '../../features/bookmark-filing/optionsActivityController';
 
 function element<T extends HTMLElement>(id: string): T {
   const found = document.querySelector<T>(`#${id}`);
@@ -16,7 +23,11 @@ const apiKeyInput = element<HTMLInputElement>('api-key-replacement');
 const apiKeyStatus = element<HTMLParagraphElement>('api-key-status');
 const clearApiKeyButton = element<HTMLButtonElement>('clear-api-key');
 const status = element<HTMLDivElement>('status');
+const activityStatus = element<HTMLParagraphElement>('activity-status');
+const activityList = element<HTMLOListElement>('activity-list');
+const clearActivityButton = element<HTMLButtonElement>('clear-activity');
 const controller = createFilingOptionsController();
+const activityController = createOptionsActivityController();
 
 function option(
   value: string,
@@ -83,6 +94,53 @@ function render(state: OptionsViewState): void {
   status.textContent = staleMessages.join(' ');
 }
 
+function activityItem(item: OptionsActivityItem): HTMLLIElement {
+  const listItem = document.createElement('li');
+  listItem.className = `activity-item activity-${item.tone}`;
+
+  const heading = document.createElement('div');
+  heading.className = 'activity-item-heading';
+  const title = document.createElement('strong');
+  title.textContent = item.title.length > 0 ? item.title : 'Untitled bookmark';
+  const outcome = document.createElement('span');
+  outcome.className = 'activity-outcome';
+  outcome.textContent = item.label;
+  heading.append(title, outcome);
+
+  const detail = document.createElement('p');
+  detail.textContent = item.detail;
+  const timestamp = document.createElement('time');
+  const date = new Date(item.updatedAt);
+  timestamp.dateTime = date.toISOString();
+  timestamp.textContent = date.toLocaleString();
+
+  listItem.append(heading, detail, timestamp);
+  return listItem;
+}
+
+function renderActivity(state: OptionsActivityViewState): void {
+  activityStatus.className = '';
+
+  switch (state.kind) {
+    case 'error':
+      activityList.replaceChildren();
+      activityStatus.className = 'error';
+      activityStatus.textContent = state.message;
+      clearActivityButton.disabled = true;
+      return;
+    case 'empty':
+      activityList.replaceChildren();
+      activityStatus.textContent =
+        'No eligible bookmarks have been processed yet.';
+      clearActivityButton.disabled = true;
+      return;
+    case 'activity':
+      activityStatus.textContent = `${state.items.length} recent ${state.items.length === 1 ? 'item' : 'items'}.`;
+      activityList.replaceChildren(...state.items.map(activityItem));
+      clearActivityButton.disabled = false;
+  }
+}
+
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   status.className = '';
@@ -133,6 +191,21 @@ clearApiKeyButton.addEventListener('click', () => {
     });
 });
 
+clearActivityButton.addEventListener('click', () => {
+  const confirmed = window.confirm(
+    'Clear all recent filing activity? Filing settings and bookmarks will not be changed.',
+  );
+  if (!confirmed) return;
+
+  clearActivityButton.disabled = true;
+  activityStatus.className = '';
+  activityStatus.textContent = 'Clearing recent activity…';
+  void activityController.clear(true).then(renderActivity);
+});
+
+const stopObservingActivity = activityController.observe(renderActivity);
+window.addEventListener('pagehide', stopObservingActivity, { once: true });
+
 void controller
   .load()
   .then(render)
@@ -140,3 +213,5 @@ void controller
     status.className = 'error';
     status.textContent = 'Settings and bookmark folders could not be loaded.';
   });
+
+void activityController.load().then(renderActivity);
