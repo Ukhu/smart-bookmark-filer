@@ -10,7 +10,7 @@ Automatic filing currently discards every workflow result and unexpected boundar
 - Represent processing, successful filing, expected unresolved outcomes, configuration or destination invalidation, and sanitized unexpected failures as user-readable activity states.
 - Show recent filing activity in the existing options page, newest first, including bookmark title, timestamp, outcome, and destination or safe reason when applicable.
 - Exclude bookmark URLs, API keys, authorization headers, provider response bodies, and raw exception text from activity records.
-- Allow the user to clear activity history without clearing filing configuration.
+- Allow the user to clear activity history without clearing filing configuration, and prevent overlapping background writes from restoring records that existed before the clear.
 - Keep notifications, retries, and manual reclassification outside this change.
 
 ## Capabilities

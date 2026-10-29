@@ -13,7 +13,7 @@ Manifest V3 workers can stop between events, and bookmark events can overlap. Ac
 - Give each accepted Inbox bookmark one stable activity record that moves from processing to a terminal outcome.
 - Preserve useful distinctions across filing success, classification failures, low confidence, and revalidation cancellation.
 - Keep records local, bounded, validated, privacy-minimized, and visible from the existing options page.
-- Keep concurrent bookmark processing from losing or cross-associating records.
+- Keep concurrent bookmark processing from losing or cross-associating records, and keep a concurrent clear from restoring pre-clear history.
 
 **Non-Goals:**
 
@@ -40,11 +40,13 @@ From that point, every expected return path will complete the same record. Post-
 
 Starting activity at listener receipt was rejected because it would retain titles for every Chrome bookmark event and fill history with irrelevant entries. Recording only terminal results was rejected because users would still lack evidence that a request is in progress or was interrupted.
 
-### Update one record by stable bookmark ID
+### Update one record by stable bookmark ID under a cross-context lock
 
 The Chrome bookmark ID is the activity identity for one creation event. Starting processing inserts or replaces that ID, and terminal completion updates it rather than appending another item. Records are ordered by `updatedAt` newest first, and trimming removes the oldest updated records beyond 50.
 
-The storage adapter will serialize mutations through an in-memory promise chain before each read-modify-write operation. This prevents overlapping classifications in one worker instance from overwriting each other's records. Durable cross-context transactions are unavailable in `chrome.storage.local`; only the background workflow mutates normal outcomes, while clear-history is an explicit user action whose result may intentionally win.
+The storage adapter will retain an in-memory promise chain for same-instance ordering and will run every activity read-modify-write operation and clear under one named Web Lock shared by the background worker and options page. This prevents both overlapping classifications and separate extension contexts from overwriting each other's decisions.
+
+The shared lock gives a clear operation and an in-flight completion one observable order. If completion obtains the lock first, a later clear removes its result. If clear obtains the lock first, a later completion loads the empty current history and writes only its own terminal record. In neither order can a stale pre-clear snapshot restore older records. An instance-local queue alone was rejected because background and options create separate store instances, while a persisted generation without atomic compare-and-swap would still permit a stale writer to overwrite newer state.
 
 ### Store privacy-minimized display snapshots
 
@@ -65,7 +67,7 @@ Combining configuration and activity into one controller was rejected because pa
 - **[Bookmark titles may contain sensitive text]** -> Retain only 50 local records, never retain URLs, document the local history, and provide independent clearing.
 - **[A worker may terminate after writing processing but before terminal state]** -> Preserve the processing record as evidence of interruption; a later options view can describe it as incomplete rather than falsely successful.
 - **[Concurrent updates can lose records]** -> Serialize adapter mutations and cover overlapping start/complete operations with tests.
-- **[Clear history can race with an in-flight classification]** -> Define clear as removing current history; a later terminal result for already-running work may create a new record, and explain this behavior in UI documentation.
+- **[Clear history can race with an in-flight classification]** -> Serialize clear and activity mutations under the shared cross-context lock. A later terminal result for already-running work may create its own new record, but records that predate the clear cannot return; explain this behavior in UI documentation.
 - **[More detailed result variants increase workflow branching]** -> Use discriminated unions and exhaustive mapping tests so every accepted outcome has one safe activity representation.
 - **[Destination paths become historical snapshots]** -> Label them as the destination used at the recorded time rather than resolving them as current folder state.
 

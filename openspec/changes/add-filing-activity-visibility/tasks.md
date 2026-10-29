@@ -4,6 +4,7 @@
 
 - [x] 1.1 Add a feature-owned, versioned filing-activity model with processing and exhaustive terminal outcome variants plus unknown-data parsing that rejects forbidden or malformed fields; verify feature tests cover every variant, malformed storage, and URL or secret exclusion.
 - [x] 1.2 Add a Chrome local activity store under `infrastructure/storage/` with start, completion, load, clear, and change-observation operations, a 50-record newest-first limit, and serialized mutations; verify infrastructure tests cover persistence, update-without-duplication, trimming, independent clearing, overlapping writes, and empty or invalid stored data.
+- [ ] 1.3 Coordinate activity mutations and clearing across background and options store instances so a clear cannot restore pre-clear records; verify two-store race tests cover both clear-before-completion and completion-before-clear ordering while permitting only corresponding post-clear terminal records to appear.
 
 ## 2. Workflow outcome publication
 
@@ -22,3 +23,4 @@
 - [x] 4.1 Extend the bookmark-filing integration test across configuration, activity storage, classification, movement, and options loading; verify one successful and representative unresolved bookmark produce accurate, privacy-bounded records without changing movement decisions.
 - [x] 4.2 Run `pnpm validate`, `pnpm build`, and OpenSpec strict validation; verify all checks pass and the generated manifest adds no permissions or host access.
 - [x] 4.3 Reload the production extension and manually exercise successful filing, low confidence, provider failure, and clear history; verify activity survives worker restart, remains capped and newest-first, and configuration and bookmarks are unaffected by clearing.
+- [ ] 4.4 Run `pnpm validate`, `pnpm build`, and OpenSpec strict validation after adding cross-context coordination, then manually clear history while classification is in flight; verify pre-clear records do not return and only later terminal records for in-flight bookmarks may appear.

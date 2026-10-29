@@ -63,8 +63,13 @@ The system SHALL show recent filing activity in the options page in newest-first
 - **THEN** the page explains that no eligible bookmarks have been processed yet
 
 ### Requirement: Independent history clearing
-The system SHALL let the user clear filing activity without modifying filing configuration or bookmarks.
+The system SHALL let the user clear filing activity without modifying filing configuration or bookmarks, and SHALL NOT restore records that existed before the confirmed clear when background activity writes overlap it.
 
 #### Scenario: User clears activity
 - **WHEN** the user confirms the clear-activity action
 - **THEN** all activity records are removed while configuration, credentials, and bookmarks remain unchanged
+
+#### Scenario: Clear overlaps in-flight filing completions
+- **WHEN** the user confirms the clear-activity action while one or more filing completions are pending
+- **THEN** activity records that existed before the clear remain removed
+- **AND** terminal outcomes completed after the clear may create new records only for their corresponding in-flight bookmarks
