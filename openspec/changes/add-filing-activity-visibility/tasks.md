@@ -7,9 +7,9 @@
 
 ## 2. Workflow outcome publication
 
-- [ ] 2.1 Refine post-acceptance `FilingWorkflowResult` paths into explicit filed, unresolved, bookmark-changed, configuration-changed, destination-changed, and sanitized unexpected-failure outcomes while preserving pre-acceptance ineligibility; verify exhaustive workflow tests cover every return path and unchanged bookmark safety.
-- [ ] 2.2 Integrate the feature-owned activity port at the workflow boundary so accepted events are recorded before classification and the same bookmark ID receives exactly one terminal update; verify tests cover success, every classifier category, below-threshold results, each revalidation cancellation, thrown dependencies, and no activity for out-of-Inbox or invalid initial events.
-- [ ] 2.3 Wire one activity store through background composition without exposing Chrome storage in the feature layer; verify listener and integration tests show overlapping bookmark events retain independent activity and unexpected accepted-event failures are no longer silently discarded.
+- [x] 2.1 Refine post-acceptance `FilingWorkflowResult` paths into explicit filed, unresolved, bookmark-changed, configuration-changed, destination-changed, and sanitized unexpected-failure outcomes while preserving pre-acceptance ineligibility; verify exhaustive workflow tests cover every return path and unchanged bookmark safety.
+- [x] 2.2 Integrate the feature-owned activity port at the workflow boundary so accepted events are recorded before classification and the same bookmark ID receives exactly one terminal update; verify tests cover success, every classifier category, below-threshold results, each revalidation cancellation, thrown dependencies, and no activity for out-of-Inbox or invalid initial events.
+- [x] 2.3 Wire one activity store through background composition without exposing Chrome storage in the feature layer; verify listener and integration tests show overlapping bookmark events retain independent activity and unexpected accepted-event failures are no longer silently discarded.
 
 ## 3. Recent activity options experience
 

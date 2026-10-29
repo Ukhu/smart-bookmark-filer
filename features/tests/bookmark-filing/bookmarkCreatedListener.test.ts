@@ -7,6 +7,7 @@ import {
 } from '../../bookmark-filing/bookmarkCreatedListener';
 import type { CandidateFolderSnapshot } from '../../bookmark-filing/candidateBuilder';
 import type { BookmarkClassificationResult } from '../../bookmark-filing/classification';
+import type { FilingActivityWriter } from '../../bookmark-filing/filingActivity';
 import {
   FILING_CONFIGURATION_VERSION,
   type FilingConfiguration,
@@ -105,6 +106,12 @@ describe('registerBookmarkCreatedListener', () => {
             deferredById[bookmarkIdByTitle[title]!]!.promise,
         ),
       };
+      const activity = {
+        start: vi.fn<FilingActivityWriter['start']>(async () => undefined),
+        complete: vi.fn<FilingActivityWriter['complete']>(
+          async () => undefined,
+        ),
+      };
       const workflow = new FilingWorkflow({
         configuration: { load: vi.fn(async () => configuration) },
         bookmarks: {
@@ -126,6 +133,7 @@ describe('registerBookmarkCreatedListener', () => {
           })),
         },
         classifier,
+        activity,
       });
       const processor: CreatedBookmarkProcessor = {
         processCreatedBookmark: vi.fn((bookmark) => {
@@ -182,6 +190,30 @@ describe('registerBookmarkCreatedListener', () => {
       expect(new Set(movements.map(({ bookmarkId }) => bookmarkId))).toEqual(
         new Set(['bookmark-1', 'bookmark-2']),
       );
+      expect(activity.start).toHaveBeenCalledTimes(2);
+      expect(activity.complete).toHaveBeenCalledTimes(2);
+      expect(
+        new Set(
+          activity.complete.mock.calls.map(
+            ([completion]) => completion.bookmarkId,
+          ),
+        ),
+      ).toEqual(new Set(['bookmark-1', 'bookmark-2']));
+      for (const bookmarkId of ['bookmark-1', 'bookmark-2'] as const) {
+        expect(activity.complete).toHaveBeenCalledWith({
+          bookmarkId,
+          title: bookmarkId === 'bookmark-1' ? 'TypeScript' : 'Budget',
+          outcome: {
+            kind: 'filed',
+            confidence: 0.9,
+            destinationFolderId: destinationById[bookmarkId],
+            destinationPath:
+              bookmarkId === 'bookmark-1'
+                ? 'Destinations/Engineering'
+                : 'Destinations/Finance',
+          },
+        });
+      }
     },
   );
 
@@ -213,5 +245,62 @@ describe('registerBookmarkCreatedListener', () => {
         url: 'https://example.com',
       },
     ]);
+  });
+
+  it('records an unexpected terminal outcome when an accepted event fails', async () => {
+    const event = createMockEvent();
+    const activity = {
+      start: vi.fn(async () => undefined),
+      complete: vi.fn(async () => undefined),
+    };
+    const configuration: FilingConfiguration = {
+      version: FILING_CONFIGURATION_VERSION,
+      inboxFolderId: 'inbox',
+      destinationRootIds: ['destinations'],
+      openAiApiKey: 'secret-key',
+      model: 'gpt-test',
+      confidenceThreshold: 0.8,
+    };
+    const workflow = new FilingWorkflow({
+      configuration: { load: vi.fn(async () => configuration) },
+      bookmarks: {
+        getBookmark: vi.fn(async () => null),
+        moveBookmark: vi.fn(async () => undefined),
+      },
+      folderTree: {
+        loadSnapshot: vi.fn(async () => ({
+          enumerateFolders: () => [],
+          findStaleFolderIds: () => [],
+          isFolderAncestor: () => false,
+        })),
+      },
+      candidateBuilder: {
+        build: vi.fn(async () => ({
+          ok: true as const,
+          candidates: [{ folderId: 'destinations', path: 'Destinations' }],
+        })),
+      },
+      classifier: {
+        classify: vi.fn(async () => {
+          throw new Error('sensitive provider failure');
+        }),
+      },
+      activity,
+    });
+
+    registerBookmarkCreatedListener(event.event, workflow);
+    event.emit('bookmark-1', {
+      id: 'bookmark-1',
+      title: 'Failure',
+      parentId: 'inbox',
+      url: 'https://example.com/private',
+    });
+
+    await vi.waitFor(() => expect(activity.complete).toHaveBeenCalledOnce());
+    expect(activity.complete).toHaveBeenCalledWith({
+      bookmarkId: 'bookmark-1',
+      title: 'Failure',
+      outcome: { kind: 'unexpected-failure' },
+    });
   });
 });

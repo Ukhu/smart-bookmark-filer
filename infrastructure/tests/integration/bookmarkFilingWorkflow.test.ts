@@ -6,6 +6,7 @@ import {
   ChromeFilingConfigurationStore,
   type LocalStorageArea,
 } from '../../storage/chromeFilingConfigurationStore';
+import { ChromeFilingActivityStore } from '../../storage/chromeFilingActivityStore';
 import {
   registerBookmarkCreatedListener,
   type BookmarkCreatedEvent,
@@ -84,6 +85,17 @@ describe('bookmark filing integration', () => {
     };
     const bookmarkTree = new ChromeBookmarkTreeAdapter(bookmarksApi);
     const configurationStore = new ChromeFilingConfigurationStore(storage);
+    const activityStore = new ChromeFilingActivityStore(
+      storage,
+      {
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+      },
+      (() => {
+        let timestamp = 0;
+        return () => ++timestamp;
+      })(),
+    );
     const options = new FilingOptionsController(
       configurationStore,
       bookmarkTree,
@@ -113,6 +125,7 @@ describe('bookmark filing integration', () => {
       classifier: new OpenAiResponsesClassifier({
         fetchImplementation: fetchMock,
       }),
+      activity: activityStore,
     });
     const pending: Promise<unknown>[] = [];
     let listener:
@@ -164,5 +177,27 @@ describe('bookmark filing integration', () => {
     expect(bookmarksById.get('successful')?.parentId).toBe('engineering');
     expect(bookmarksById.get('low-confidence')?.parentId).toBe('inbox');
     expect(bookmarksById.get('provider-failure')?.parentId).toBe('inbox');
+    await expect(activityStore.load()).resolves.toMatchObject([
+      {
+        bookmarkId: 'provider-failure',
+        title: 'Unavailable',
+        outcome: { kind: 'unresolved', reason: 'provider-error' },
+      },
+      {
+        bookmarkId: 'low-confidence',
+        title: 'Uncertain',
+        outcome: { kind: 'below-threshold', confidence: 0.79 },
+      },
+      {
+        bookmarkId: 'successful',
+        title: 'TypeScript',
+        outcome: {
+          kind: 'filed',
+          confidence: 0.9,
+          destinationFolderId: 'engineering',
+          destinationPath: 'Destinations/Engineering',
+        },
+      },
+    ]);
   });
 });

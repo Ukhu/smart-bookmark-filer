@@ -66,6 +66,10 @@ function createDependencies(
         confidence: 0.9,
       })),
     },
+    activity: {
+      start: vi.fn(async () => undefined),
+      complete: vi.fn(async () => undefined),
+    },
     ...overrides,
   };
 }
@@ -86,6 +90,7 @@ describe('FilingWorkflow initial eligibility', () => {
       kind: 'filed',
       bookmarkId: 'bookmark-1',
       folderId: 'engineering',
+      destinationPath: 'Destinations/Engineering',
       confidence: 0.9,
     });
     expect(dependencies.classifier.classify).toHaveBeenCalledWith({
@@ -95,6 +100,26 @@ describe('FilingWorkflow initial eligibility', () => {
       apiKey: 'secret-key',
       model: 'gpt-test',
     });
+    expect(dependencies.activity.start).toHaveBeenCalledWith({
+      bookmarkId: 'bookmark-1',
+      title: 'TypeScript',
+    });
+    expect(dependencies.activity.complete).toHaveBeenCalledOnce();
+    expect(dependencies.activity.complete).toHaveBeenCalledWith({
+      bookmarkId: 'bookmark-1',
+      title: 'TypeScript',
+      outcome: {
+        kind: 'filed',
+        confidence: 0.9,
+        destinationFolderId: 'engineering',
+        destinationPath: 'Destinations/Engineering',
+      },
+    });
+    expect(
+      vi.mocked(dependencies.activity.start).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      vi.mocked(dependencies.classifier.classify).mock.invocationCallOrder[0]!,
+    );
   });
 
   it('does not classify a bookmark created outside the configured Inbox', async () => {
@@ -111,6 +136,8 @@ describe('FilingWorkflow initial eligibility', () => {
     ).resolves.toEqual({ kind: 'ineligible' });
     expect(dependencies.classifier.classify).not.toHaveBeenCalled();
     expect(dependencies.folderTree.loadSnapshot).not.toHaveBeenCalled();
+    expect(dependencies.activity.start).not.toHaveBeenCalled();
+    expect(dependencies.activity.complete).not.toHaveBeenCalled();
   });
 
   it('does not classify a folder or other node without a URL', async () => {
@@ -126,6 +153,7 @@ describe('FilingWorkflow initial eligibility', () => {
     ).resolves.toEqual({ kind: 'ineligible' });
     expect(dependencies.configuration.load).not.toHaveBeenCalled();
     expect(dependencies.classifier.classify).not.toHaveBeenCalled();
+    expect(dependencies.activity.start).not.toHaveBeenCalled();
   });
 
   it('does not classify when the configuration is missing or incomplete', async () => {
@@ -143,6 +171,7 @@ describe('FilingWorkflow initial eligibility', () => {
       }),
     ).resolves.toEqual({ kind: 'ineligible' });
     expect(dependencies.classifier.classify).not.toHaveBeenCalled();
+    expect(dependencies.activity.start).not.toHaveBeenCalled();
   });
 
   it.each(['inbox', 'destinations'])(
@@ -165,6 +194,7 @@ describe('FilingWorkflow initial eligibility', () => {
       ).resolves.toEqual({ kind: 'ineligible' });
       expect(dependencies.candidateBuilder.build).not.toHaveBeenCalled();
       expect(dependencies.classifier.classify).not.toHaveBeenCalled();
+      expect(dependencies.activity.start).not.toHaveBeenCalled();
     },
   );
 
@@ -189,6 +219,7 @@ describe('FilingWorkflow initial eligibility', () => {
       }),
     ).resolves.toEqual({ kind: 'ineligible' });
     expect(dependencies.classifier.classify).not.toHaveBeenCalled();
+    expect(dependencies.activity.start).not.toHaveBeenCalled();
   });
 
   it('does not classify when the saved source and destination boundaries overlap', async () => {
@@ -211,6 +242,7 @@ describe('FilingWorkflow initial eligibility', () => {
       }),
     ).resolves.toEqual({ kind: 'ineligible' });
     expect(dependencies.classifier.classify).not.toHaveBeenCalled();
+    expect(dependencies.activity.start).not.toHaveBeenCalled();
   });
 });
 
@@ -221,6 +253,7 @@ describe('FilingWorkflow confidence gate', () => {
       expected: {
         kind: 'unresolved',
         reason: 'below-confidence-threshold',
+        confidence: 0.79,
       },
     },
     {
@@ -229,6 +262,7 @@ describe('FilingWorkflow confidence gate', () => {
         kind: 'filed',
         bookmarkId: 'bookmark-1',
         folderId: 'engineering',
+        destinationPath: 'Destinations/Engineering',
         confidence: 0.8,
       },
     },
@@ -238,6 +272,7 @@ describe('FilingWorkflow confidence gate', () => {
         kind: 'filed',
         bookmarkId: 'bookmark-1',
         folderId: 'engineering',
+        destinationPath: 'Destinations/Engineering',
         confidence: 0.81,
       },
     },
@@ -263,6 +298,21 @@ describe('FilingWorkflow confidence gate', () => {
           url: 'https://example.com',
         }),
       ).resolves.toEqual(expected);
+      expect(dependencies.activity.start).toHaveBeenCalledOnce();
+      expect(dependencies.activity.complete).toHaveBeenCalledOnce();
+      expect(dependencies.activity.complete).toHaveBeenCalledWith({
+        bookmarkId: 'bookmark-1',
+        title: 'Threshold test',
+        outcome:
+          confidence < configuration.confidenceThreshold
+            ? { kind: 'below-threshold', confidence }
+            : {
+                kind: 'filed',
+                confidence,
+                destinationFolderId: 'engineering',
+                destinationPath: 'Destinations/Engineering',
+              },
+      });
     },
   );
 
@@ -287,8 +337,39 @@ describe('FilingWorkflow confidence gate', () => {
           url: 'https://example.com',
         }),
       ).resolves.toEqual({ kind: 'unresolved', reason: category });
+      expect(dependencies.activity.complete).toHaveBeenCalledOnce();
+      expect(dependencies.activity.complete).toHaveBeenCalledWith({
+        bookmarkId: 'bookmark-1',
+        title: 'Unresolved classification',
+        outcome: { kind: 'unresolved', reason: category },
+      });
     },
   );
+
+  it('sanitizes an unexpected accepted-event failure and leaves the bookmark unchanged', async () => {
+    const dependencies = createDependencies({
+      classifier: {
+        classify: vi.fn(async () => {
+          throw new Error('raw provider response and secret-key');
+        }),
+      },
+    });
+
+    await expect(
+      new FilingWorkflow(dependencies).processCreatedBookmark({
+        id: 'bookmark-1',
+        title: 'Unexpected failure',
+        parentId: 'inbox',
+        url: 'https://example.com/private',
+      }),
+    ).resolves.toEqual({ kind: 'unexpected-failure' });
+    expect(dependencies.bookmarks.moveBookmark).not.toHaveBeenCalled();
+    expect(dependencies.activity.complete).toHaveBeenCalledWith({
+      bookmarkId: 'bookmark-1',
+      title: 'Unexpected failure',
+      outcome: { kind: 'unexpected-failure' },
+    });
+  });
 });
 
 describe('FilingWorkflow movement revalidation', () => {
@@ -309,6 +390,7 @@ describe('FilingWorkflow movement revalidation', () => {
       kind: 'filed',
       bookmarkId: 'bookmark-1',
       folderId: 'engineering',
+      destinationPath: 'Destinations/Engineering',
       confidence: 0.9,
     });
     expect(dependencies.configuration.load).toHaveBeenCalledTimes(2);
@@ -335,8 +417,13 @@ describe('FilingWorkflow movement revalidation', () => {
 
     await expect(
       new FilingWorkflow(dependencies).processCreatedBookmark(createdBookmark),
-    ).resolves.toEqual({ kind: 'ineligible' });
+    ).resolves.toEqual({ kind: 'bookmark-changed' });
     expect(dependencies.bookmarks.moveBookmark).not.toHaveBeenCalled();
+    expect(dependencies.activity.complete).toHaveBeenCalledWith({
+      bookmarkId: 'bookmark-1',
+      title: 'TypeScript',
+      outcome: { kind: 'canceled', reason: 'bookmark-changed' },
+    });
   });
 
   it('does not move anything when the bookmark was deleted', async () => {
@@ -349,8 +436,13 @@ describe('FilingWorkflow movement revalidation', () => {
 
     await expect(
       new FilingWorkflow(dependencies).processCreatedBookmark(createdBookmark),
-    ).resolves.toEqual({ kind: 'ineligible' });
+    ).resolves.toEqual({ kind: 'bookmark-changed' });
     expect(dependencies.bookmarks.moveBookmark).not.toHaveBeenCalled();
+    expect(dependencies.activity.complete).toHaveBeenCalledWith({
+      bookmarkId: 'bookmark-1',
+      title: 'TypeScript',
+      outcome: { kind: 'canceled', reason: 'bookmark-changed' },
+    });
   });
 
   it('does not move when configuration changed during classification', async () => {
@@ -363,8 +455,13 @@ describe('FilingWorkflow movement revalidation', () => {
 
     await expect(
       new FilingWorkflow(dependencies).processCreatedBookmark(createdBookmark),
-    ).resolves.toEqual({ kind: 'ineligible' });
+    ).resolves.toEqual({ kind: 'configuration-changed' });
     expect(dependencies.bookmarks.moveBookmark).not.toHaveBeenCalled();
+    expect(dependencies.activity.complete).toHaveBeenCalledWith({
+      bookmarkId: 'bookmark-1',
+      title: 'TypeScript',
+      outcome: { kind: 'canceled', reason: 'configuration-changed' },
+    });
   });
 
   it('does not move when the selected destination was deleted', async () => {
@@ -376,8 +473,13 @@ describe('FilingWorkflow movement revalidation', () => {
 
     await expect(
       new FilingWorkflow(dependencies).processCreatedBookmark(createdBookmark),
-    ).resolves.toEqual({ kind: 'ineligible' });
+    ).resolves.toEqual({ kind: 'destination-changed' });
     expect(dependencies.bookmarks.moveBookmark).not.toHaveBeenCalled();
+    expect(dependencies.activity.complete).toHaveBeenCalledWith({
+      bookmarkId: 'bookmark-1',
+      title: 'TypeScript',
+      outcome: { kind: 'canceled', reason: 'destination-changed' },
+    });
   });
 
   it('does not move when the selected destination leaves the allowed roots', async () => {
@@ -389,7 +491,69 @@ describe('FilingWorkflow movement revalidation', () => {
 
     await expect(
       new FilingWorkflow(dependencies).processCreatedBookmark(createdBookmark),
-    ).resolves.toEqual({ kind: 'ineligible' });
+    ).resolves.toEqual({ kind: 'destination-changed' });
     expect(dependencies.bookmarks.moveBookmark).not.toHaveBeenCalled();
+    expect(dependencies.activity.complete).toHaveBeenCalledWith({
+      bookmarkId: 'bookmark-1',
+      title: 'TypeScript',
+      outcome: { kind: 'canceled', reason: 'destination-changed' },
+    });
+  });
+});
+
+describe('FilingWorkflow accepted-event failures', () => {
+  const createdBookmark = {
+    id: 'bookmark-1',
+    title: 'TypeScript',
+    parentId: 'inbox',
+    url: 'https://www.typescriptlang.org/',
+  } as const;
+
+  it.each([
+    'classification',
+    'bookmark revalidation',
+    'configuration revalidation',
+    'destination revalidation',
+    'movement',
+  ] as const)('records a sanitized failure when %s throws', async (stage) => {
+    const dependencies = createDependencies();
+    const failure = new Error('raw URL, credential, or provider detail');
+
+    switch (stage) {
+      case 'classification':
+        vi.mocked(dependencies.classifier.classify).mockRejectedValue(failure);
+        break;
+      case 'bookmark revalidation':
+        vi.mocked(dependencies.bookmarks.getBookmark).mockRejectedValue(
+          failure,
+        );
+        break;
+      case 'configuration revalidation':
+        vi.mocked(dependencies.configuration.load)
+          .mockResolvedValueOnce(configuration)
+          .mockRejectedValueOnce(failure);
+        break;
+      case 'destination revalidation':
+        vi.mocked(dependencies.folderTree.loadSnapshot)
+          .mockResolvedValueOnce(createSnapshot())
+          .mockRejectedValueOnce(failure);
+        break;
+      case 'movement':
+        vi.mocked(dependencies.bookmarks.moveBookmark).mockRejectedValue(
+          failure,
+        );
+        break;
+    }
+
+    await expect(
+      new FilingWorkflow(dependencies).processCreatedBookmark(createdBookmark),
+    ).resolves.toEqual({ kind: 'unexpected-failure' });
+    expect(dependencies.activity.start).toHaveBeenCalledOnce();
+    expect(dependencies.activity.complete).toHaveBeenCalledOnce();
+    expect(dependencies.activity.complete).toHaveBeenCalledWith({
+      bookmarkId: 'bookmark-1',
+      title: 'TypeScript',
+      outcome: { kind: 'unexpected-failure' },
+    });
   });
 });

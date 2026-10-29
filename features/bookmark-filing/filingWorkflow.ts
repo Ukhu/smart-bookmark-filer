@@ -9,6 +9,10 @@ import {
   type FilingConfiguration,
 } from './configuration';
 import type {
+  FilingActivityWriter,
+  TerminalFilingActivityOutcome,
+} from './filingActivity';
+import type {
   DestinationCandidate,
   DestinationCandidateBuildResult,
 } from './candidateBuilder';
@@ -43,15 +47,24 @@ export type FilingWorkflowResult =
   | { readonly kind: 'ineligible' }
   | {
       readonly kind: 'unresolved';
-      readonly reason:
-        'below-confidence-threshold' | ClassificationUnresolvedCategory;
+      readonly reason: ClassificationUnresolvedCategory;
+    }
+  | {
+      readonly kind: 'unresolved';
+      readonly reason: 'below-confidence-threshold';
+      readonly confidence: number;
     }
   | {
       readonly kind: 'filed';
       readonly bookmarkId: string;
       readonly folderId: string;
+      readonly destinationPath: string;
       readonly confidence: number;
-    };
+    }
+  | { readonly kind: 'bookmark-changed' }
+  | { readonly kind: 'configuration-changed' }
+  | { readonly kind: 'destination-changed' }
+  | { readonly kind: 'unexpected-failure' };
 
 export interface FilingWorkflowDependencies {
   readonly configuration: FilingConfigurationReader;
@@ -59,6 +72,7 @@ export interface FilingWorkflowDependencies {
   readonly folderTree: FilingFolderTree;
   readonly candidateBuilder: FilingCandidateBuilder;
   readonly classifier: BookmarkClassifier;
+  readonly activity: FilingActivityWriter;
 }
 
 function hasValidConfiguredFolders(
@@ -154,72 +168,130 @@ export class FilingWorkflow {
       return { kind: 'ineligible' };
     }
 
-    const result = await this.dependencies.classifier.classify({
+    await this.dependencies.activity.start({
+      bookmarkId: bookmark.id,
       title: bookmark.title,
-      url: bookmark.url,
-      candidates: candidateResult.candidates,
-      apiKey: configuration.openAiApiKey,
-      model: configuration.model,
     });
 
-    const evaluated = evaluateClassification(
-      bookmark.id,
+    const result = await this.processAcceptedBookmark(
+      { ...bookmark, url: bookmark.url },
       configuration,
-      result,
+      candidateResult.candidates,
     );
+    await this.dependencies.activity.complete({
+      bookmarkId: bookmark.id,
+      title: bookmark.title,
+      outcome: toActivityOutcome(result),
+    });
 
-    if (evaluated.kind !== 'ready-to-file') {
-      return evaluated;
-    }
+    return result;
+  }
 
-    const currentBookmark = await this.dependencies.bookmarks.getBookmark(
-      bookmark.id,
-    );
-    if (currentBookmark?.parentId !== configuration.inboxFolderId) {
-      return { kind: 'ineligible' };
-    }
+  private async processAcceptedBookmark(
+    bookmark: CreatedBookmark & { readonly url: string },
+    configuration: FilingConfiguration,
+    candidates: readonly DestinationCandidate[],
+  ): Promise<Exclude<FilingWorkflowResult, { readonly kind: 'ineligible' }>> {
+    try {
+      const result = await this.dependencies.classifier.classify({
+        title: bookmark.title,
+        url: bookmark.url,
+        candidates,
+        apiKey: configuration.openAiApiKey,
+        model: configuration.model,
+      });
 
-    const currentConfiguration = await this.dependencies.configuration.load();
-    if (
-      currentConfiguration === null ||
-      !configurationsMatch(configuration, currentConfiguration)
-    ) {
-      return { kind: 'ineligible' };
-    }
+      const evaluated = evaluateClassification(
+        bookmark.id,
+        configuration,
+        candidates,
+        result,
+      );
 
-    const currentSnapshot = await this.dependencies.folderTree.loadSnapshot();
-    if (
-      !hasValidConfiguredFolders(currentConfiguration, currentSnapshot) ||
-      !isEligibleDestination(
+      if (evaluated.kind !== 'ready-to-file') {
+        return evaluated;
+      }
+
+      const currentBookmark = await this.dependencies.bookmarks.getBookmark(
+        bookmark.id,
+      );
+      if (currentBookmark?.parentId !== configuration.inboxFolderId) {
+        return { kind: 'bookmark-changed' };
+      }
+
+      const currentConfiguration = await this.dependencies.configuration.load();
+      if (
+        currentConfiguration === null ||
+        !configurationsMatch(configuration, currentConfiguration)
+      ) {
+        return { kind: 'configuration-changed' };
+      }
+
+      const currentSnapshot = await this.dependencies.folderTree.loadSnapshot();
+      if (
+        !hasValidConfiguredFolders(currentConfiguration, currentSnapshot) ||
+        !isEligibleDestination(
+          evaluated.folderId,
+          currentConfiguration,
+          currentSnapshot,
+        )
+      ) {
+        return { kind: 'destination-changed' };
+      }
+
+      await this.dependencies.bookmarks.moveBookmark(
+        bookmark.id,
         evaluated.folderId,
-        currentConfiguration,
-        currentSnapshot,
-      )
-    ) {
-      return { kind: 'ineligible' };
+      );
+
+      return { ...evaluated, kind: 'filed' };
+    } catch {
+      return { kind: 'unexpected-failure' };
     }
+  }
+}
 
-    await this.dependencies.bookmarks.moveBookmark(
-      bookmark.id,
-      evaluated.folderId,
-    );
-
-    return { ...evaluated, kind: 'filed' };
+function toActivityOutcome(
+  result: Exclude<FilingWorkflowResult, { readonly kind: 'ineligible' }>,
+): TerminalFilingActivityOutcome {
+  switch (result.kind) {
+    case 'filed':
+      return {
+        kind: 'filed',
+        confidence: result.confidence,
+        destinationFolderId: result.folderId,
+        destinationPath: result.destinationPath,
+      };
+    case 'unresolved':
+      return result.reason === 'below-confidence-threshold'
+        ? {
+            kind: 'below-threshold',
+            confidence: result.confidence,
+          }
+        : { kind: 'unresolved', reason: result.reason };
+    case 'bookmark-changed':
+    case 'configuration-changed':
+    case 'destination-changed':
+      return { kind: 'canceled', reason: result.kind };
+    case 'unexpected-failure':
+      return { kind: 'unexpected-failure' };
   }
 }
 
 type ClassificationEvaluation =
-  | Exclude<FilingWorkflowResult, { readonly kind: 'filed' }>
+  | Extract<FilingWorkflowResult, { readonly kind: 'unresolved' }>
   | {
       readonly kind: 'ready-to-file';
       readonly bookmarkId: string;
       readonly folderId: string;
+      readonly destinationPath: string;
       readonly confidence: number;
     };
 
 function evaluateClassification(
   bookmarkId: string,
   configuration: FilingConfiguration,
+  candidates: readonly DestinationCandidate[],
   result: BookmarkClassificationResult,
 ): ClassificationEvaluation {
   if (result.kind === 'unresolved') {
@@ -227,13 +299,22 @@ function evaluateClassification(
   }
 
   if (result.confidence < configuration.confidenceThreshold) {
-    return { kind: 'unresolved', reason: 'below-confidence-threshold' };
+    return {
+      kind: 'unresolved',
+      reason: 'below-confidence-threshold',
+      confidence: result.confidence,
+    };
   }
+
+  const destination = candidates.find(
+    ({ folderId }) => folderId === result.folderId,
+  );
 
   return {
     kind: 'ready-to-file',
     bookmarkId,
     folderId: result.folderId,
+    destinationPath: destination?.path ?? result.folderId,
     confidence: result.confidence,
   };
 }

@@ -76,9 +76,12 @@ export type FilingActivityListener = (
   activity: readonly FilingActivity[],
 ) => void;
 
-export interface FilingActivityStore {
+export interface FilingActivityWriter {
   start(identity: FilingActivityIdentity): Promise<void>;
   complete(completion: FilingActivityCompletion): Promise<void>;
+}
+
+export interface FilingActivityStore extends FilingActivityWriter {
   load(): Promise<readonly FilingActivity[]>;
   clear(): Promise<void>;
   observe(listener: FilingActivityListener): () => void;
