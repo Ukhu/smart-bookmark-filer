@@ -2,8 +2,8 @@
 
 ## 1. Activity model and persistence
 
-- [ ] 1.1 Add a feature-owned, versioned filing-activity model with processing and exhaustive terminal outcome variants plus unknown-data parsing that rejects forbidden or malformed fields; verify feature tests cover every variant, malformed storage, and URL or secret exclusion.
-- [ ] 1.2 Add a Chrome local activity store under `infrastructure/storage/` with start, completion, load, clear, and change-observation operations, a 50-record newest-first limit, and serialized mutations; verify infrastructure tests cover persistence, update-without-duplication, trimming, independent clearing, overlapping writes, and empty or invalid stored data.
+- [x] 1.1 Add a feature-owned, versioned filing-activity model with processing and exhaustive terminal outcome variants plus unknown-data parsing that rejects forbidden or malformed fields; verify feature tests cover every variant, malformed storage, and URL or secret exclusion.
+- [x] 1.2 Add a Chrome local activity store under `infrastructure/storage/` with start, completion, load, clear, and change-observation operations, a 50-record newest-first limit, and serialized mutations; verify infrastructure tests cover persistence, update-without-duplication, trimming, independent clearing, overlapping writes, and empty or invalid stored data.
 
 ## 2. Workflow outcome publication
 
