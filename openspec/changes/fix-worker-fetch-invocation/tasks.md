@@ -2,8 +2,8 @@
 
 ## 1. Worker-safe OpenAI transport
 
-- [ ] 1.1 Replace the unbound default fetch dependency in `infrastructure/openai/openAiResponsesClassifier.ts` with a worker-global receiver-preserving wrapper while leaving injected implementations unchanged; verify existing classifier tests still pass.
-- [ ] 1.2 Add a regression case in `infrastructure/tests/openai/openAiResponsesClassifier.test.ts` that constructs the default classifier against a branded synthetic global fetch, asserts `this === globalThis`, restores the global after the test, and verifies no live network request is made.
+- [x] 1.1 Replace the unbound default fetch dependency in `infrastructure/openai/openAiResponsesClassifier.ts` with a worker-global receiver-preserving wrapper while leaving injected implementations unchanged; verify existing classifier tests still pass.
+- [x] 1.2 Add a regression case in `infrastructure/tests/openai/openAiResponsesClassifier.test.ts` that constructs the default classifier against a branded synthetic global fetch, asserts `this === globalThis`, restores the global after the test, and verifies no live network request is made.
 
 ## 2. Extension verification
 

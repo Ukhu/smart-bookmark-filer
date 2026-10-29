@@ -57,6 +57,29 @@ afterEach(() => {
 });
 
 describe('OpenAiResponsesClassifier request contract', () => {
+  it('preserves the global receiver for the default fetch implementation', async () => {
+    const originalFetch = globalThis.fetch;
+    const brandedFetch = vi.fn(function (this: typeof globalThis) {
+      expect(this).toBe(globalThis);
+      return Promise.resolve(successfulResponse('research', 0.91));
+    });
+
+    globalThis.fetch = brandedFetch as typeof fetch;
+
+    try {
+      const classifier = new OpenAiResponsesClassifier();
+
+      await expect(classifier.classify(validInput)).resolves.toEqual({
+        kind: 'success',
+        folderId: 'research',
+        confidence: 0.91,
+      });
+      expect(brandedFetch).toHaveBeenCalledOnce();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('sends only the configured model and privacy-bounded classification input', async () => {
     const fetchImplementation = vi
       .fn<typeof fetch>()

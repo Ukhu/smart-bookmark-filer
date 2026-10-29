@@ -98,7 +98,9 @@ export class OpenAiResponsesClassifier implements BookmarkClassifier {
   private readonly timeoutMs: number;
 
   constructor(options: OpenAiResponsesClassifierOptions = {}) {
-    this.fetchImplementation = options.fetchImplementation ?? globalThis.fetch;
+    this.fetchImplementation =
+      options.fetchImplementation ??
+      ((input, init) => globalThis.fetch(input, init));
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
     if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0) {
