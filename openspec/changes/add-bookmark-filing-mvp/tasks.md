@@ -41,5 +41,5 @@
 
 ## 6. Integration Verification
 
-- [ ] 6.1 Run the complete validation suite and production build, then verify generated artifacts contain the background and options entrypoints, expected permissions, and no API key, page-content access, content scripts, or unrelated host permissions.
-- [ ] 6.2 Exercise the built workflow with mocked Chrome and OpenAI boundaries across configuration save, Inbox event, classification, and movement, and verify a successful path moves exactly one bookmark while low-confidence and failure paths leave it in the Inbox.
+- [x] 6.1 Run the complete validation suite and production build, then verify generated artifacts contain the background and options entrypoints, expected permissions, and no API key, page-content access, content scripts, or unrelated host permissions.
+- [x] 6.2 Exercise the built workflow with mocked Chrome and OpenAI boundaries across configuration save, Inbox event, classification, and movement, and verify a successful path moves exactly one bookmark while low-confidence and failure paths leave it in the Inbox.
