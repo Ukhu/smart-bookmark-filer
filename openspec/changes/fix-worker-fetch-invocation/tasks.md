@@ -7,5 +7,5 @@
 
 ## 2. Extension verification
 
-- [ ] 2.1 Run formatting, linting, type checking, classifier tests, and the production build; verify the generated manifest retains only the intended OpenAI host permission and the production background bundle builds successfully.
-- [ ] 2.2 Reload the unpacked production extension and perform a controlled Inbox smoke test; verify the service worker issues an OpenAI request rather than throwing `WorkerGlobalScope: Illegal invocation`, while recording any independent model or authorization response separately.
+- [x] 2.1 Run formatting, linting, type checking, classifier tests, and the production build; verify the generated manifest retains only the intended OpenAI host permission and the production background bundle builds successfully.
+- [x] 2.2 Reload the unpacked production extension and perform a controlled Inbox smoke test; verify the service worker issues an OpenAI request rather than throwing `WorkerGlobalScope: Illegal invocation`, while recording any independent model or authorization response separately.
