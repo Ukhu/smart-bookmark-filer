@@ -4,11 +4,27 @@ import { FILING_ACTIVITY_VERSION } from '../../../features/bookmark-filing/filin
 import {
   ChromeFilingActivityStore,
   FILING_ACTIVITY_LIMIT,
+  FILING_ACTIVITY_LOCK_NAME,
   FILING_ACTIVITY_STORAGE_KEY,
+  type FilingActivityLock,
   type FilingActivityStorageArea,
   type StorageChangeEvent,
   type StorageChangeListener,
 } from '../../storage/chromeFilingActivityStore';
+
+class SharedTestLock implements FilingActivityLock {
+  private queue: Promise<void> = Promise.resolve();
+
+  request<T>(name: string, operation: () => Promise<T>): Promise<T> {
+    expect(name).toBe(FILING_ACTIVITY_LOCK_NAME);
+    const result = this.queue.then(operation, operation);
+    this.queue = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  }
+}
 
 function createStorageMock(initialValue?: unknown) {
   const values: Record<string, unknown> = {
@@ -170,6 +186,98 @@ describe('ChromeFilingActivityStore', () => {
         outcome: { kind: 'unresolved', reason: 'network-error' },
       }),
     ]);
+  });
+
+  it('does not restore pre-clear records when another store completes after clear', async () => {
+    const sharedLock = new SharedTestLock();
+    const backgroundStore = new ChromeFilingActivityStore(
+      storageMock.storage,
+      storageMock.changes,
+      createClock(),
+      sharedLock,
+    );
+    const optionsStore = new ChromeFilingActivityStore(
+      storageMock.storage,
+      storageMock.changes,
+      createClock(2_000),
+      sharedLock,
+    );
+    await backgroundStore.start({ bookmarkId: 'old', title: 'Old' });
+    await backgroundStore.start({ bookmarkId: 'in-flight', title: 'Current' });
+
+    let releaseClear: (() => void) | undefined;
+    const clearBlocked = new Promise<void>((resolve) => {
+      releaseClear = resolve;
+    });
+    vi.mocked(storageMock.storage.remove).mockImplementationOnce(
+      async (key) => {
+        delete storageMock.values[key];
+        await clearBlocked;
+      },
+    );
+
+    const clear = optionsStore.clear();
+    await vi.waitFor(() =>
+      expect(storageMock.storage.remove).toHaveBeenCalledOnce(),
+    );
+    const completion = backgroundStore.complete({
+      bookmarkId: 'in-flight',
+      title: 'Current',
+      outcome: { kind: 'unresolved', reason: 'network-error' },
+    });
+
+    expect(storageMock.storage.get).toHaveBeenCalledTimes(2);
+    releaseClear?.();
+    await Promise.all([clear, completion]);
+
+    await expect(backgroundStore.load()).resolves.toEqual([
+      expect.objectContaining({
+        bookmarkId: 'in-flight',
+        outcome: { kind: 'unresolved', reason: 'network-error' },
+      }),
+    ]);
+  });
+
+  it('lets a clear remove a completion that wins the shared lock first', async () => {
+    const sharedLock = new SharedTestLock();
+    const backgroundStore = new ChromeFilingActivityStore(
+      storageMock.storage,
+      storageMock.changes,
+      createClock(),
+      sharedLock,
+    );
+    const optionsStore = new ChromeFilingActivityStore(
+      storageMock.storage,
+      storageMock.changes,
+      createClock(2_000),
+      sharedLock,
+    );
+    await backgroundStore.start({ bookmarkId: 'in-flight', title: 'Current' });
+
+    let releaseCompletion: (() => void) | undefined;
+    const completionBlocked = new Promise<void>((resolve) => {
+      releaseCompletion = resolve;
+    });
+    vi.mocked(storageMock.storage.set).mockImplementationOnce(async (items) => {
+      await completionBlocked;
+      Object.assign(storageMock.values, items);
+    });
+
+    const completion = backgroundStore.complete({
+      bookmarkId: 'in-flight',
+      title: 'Current',
+      outcome: { kind: 'unresolved', reason: 'network-error' },
+    });
+    await vi.waitFor(() =>
+      expect(storageMock.storage.set).toHaveBeenCalledTimes(2),
+    );
+    const clear = optionsStore.clear();
+
+    expect(storageMock.storage.remove).not.toHaveBeenCalled();
+    releaseCompletion?.();
+    await Promise.all([completion, clear]);
+
+    await expect(backgroundStore.load()).resolves.toEqual([]);
   });
 
   it.each([undefined, null, {}, [{ malformed: true }]])(

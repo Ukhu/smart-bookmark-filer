@@ -10,6 +10,8 @@ import {
 
 export const FILING_ACTIVITY_STORAGE_KEY = 'smartBookmarkFiler.filingActivity';
 export const FILING_ACTIVITY_LIMIT = 50;
+export const FILING_ACTIVITY_LOCK_NAME =
+  'smartBookmarkFiler.filingActivity.mutation';
 
 export interface FilingActivityStorageArea {
   get(key: string): Promise<Record<string, unknown>>;
@@ -32,7 +34,25 @@ export interface StorageChangeEvent {
   removeListener(listener: StorageChangeListener): void;
 }
 
+export interface FilingActivityLock {
+  request<T>(name: string, operation: () => Promise<T>): Promise<T>;
+}
+
 type Clock = () => number;
+
+const immediateLock: FilingActivityLock = {
+  request: (_name, operation) => operation(),
+};
+
+function getDefaultLock(): FilingActivityLock {
+  const locks = globalThis.navigator?.locks;
+  if (locks === undefined) return immediateLock;
+
+  return {
+    request: async <T>(name: string, operation: () => Promise<T>): Promise<T> =>
+      await locks.request(name, operation),
+  };
+}
 
 function newestFirst(activity: readonly FilingActivity[]): FilingActivity[] {
   return [...activity].sort((first, second) => {
@@ -57,6 +77,7 @@ export class ChromeFilingActivityStore implements FilingActivityStore {
     private readonly storage: FilingActivityStorageArea,
     private readonly changes: StorageChangeEvent,
     private readonly clock: Clock = Date.now,
+    private readonly lock: FilingActivityLock = getDefaultLock(),
   ) {}
 
   async start(identity: FilingActivityIdentity): Promise<void> {
@@ -110,7 +131,7 @@ export class ChromeFilingActivityStore implements FilingActivityStore {
   }
 
   async clear(): Promise<void> {
-    return this.enqueue(async () =>
+    return this.enqueueMutation(async () =>
       this.storage.remove(FILING_ACTIVITY_STORAGE_KEY),
     );
   }
@@ -135,7 +156,7 @@ export class ChromeFilingActivityStore implements FilingActivityStore {
       activity: readonly FilingActivity[],
     ) => Promise<readonly FilingActivity[]>,
   ): Promise<void> {
-    return this.enqueue(async () => {
+    return this.enqueueMutation(async () => {
       const activity = await this.load();
       const updated = newestFirst(await update(activity)).slice(
         0,
@@ -143,6 +164,12 @@ export class ChromeFilingActivityStore implements FilingActivityStore {
       );
       await this.storage.set({ [FILING_ACTIVITY_STORAGE_KEY]: updated });
     });
+  }
+
+  private enqueueMutation(operation: () => Promise<void>): Promise<void> {
+    return this.enqueue(() =>
+      this.lock.request(FILING_ACTIVITY_LOCK_NAME, operation),
+    );
   }
 
   private enqueue(operation: () => Promise<void>): Promise<void> {
