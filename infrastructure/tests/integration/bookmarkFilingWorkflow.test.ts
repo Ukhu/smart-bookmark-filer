@@ -14,6 +14,7 @@ import {
 import { DestinationCandidateBuilder } from '../../../features/bookmark-filing/candidateBuilder';
 import type { CreatedBookmark } from '../../../features/bookmark-filing/filingWorkflow';
 import { FilingWorkflow } from '../../../features/bookmark-filing/filingWorkflow';
+import { OptionsActivityController } from '../../../features/bookmark-filing/optionsActivityController';
 import { FilingOptionsController } from '../../../features/bookmark-filing/optionsController';
 
 function openAiResponse(folderId: string, confidence: number): Response {
@@ -35,7 +36,7 @@ function openAiResponse(folderId: string, confidence: number): Response {
 }
 
 describe('bookmark filing integration', () => {
-  it('saves configuration and files only a successful, confident Inbox event', async () => {
+  it('persists privacy-bounded outcomes for filing and options display without changing movement decisions', async () => {
     const storedValues: Record<string, unknown> = {};
     const storage: LocalStorageArea = {
       get: vi.fn(async (key) => ({ [key]: storedValues[key] })),
@@ -177,7 +178,8 @@ describe('bookmark filing integration', () => {
     expect(bookmarksById.get('successful')?.parentId).toBe('engineering');
     expect(bookmarksById.get('low-confidence')?.parentId).toBe('inbox');
     expect(bookmarksById.get('provider-failure')?.parentId).toBe('inbox');
-    await expect(activityStore.load()).resolves.toMatchObject([
+    const activity = await activityStore.load();
+    expect(activity).toMatchObject([
       {
         bookmarkId: 'provider-failure',
         title: 'Unavailable',
@@ -199,5 +201,34 @@ describe('bookmark filing integration', () => {
         },
       },
     ]);
+
+    const activityView = await new OptionsActivityController(
+      activityStore,
+    ).load();
+    expect(activityView).toMatchObject({
+      kind: 'activity',
+      items: [
+        {
+          bookmarkId: 'provider-failure',
+          label: 'Unresolved',
+          detail: 'OpenAI could not complete the request.',
+        },
+        {
+          bookmarkId: 'low-confidence',
+          label: 'Below confidence threshold',
+          detail: 'The 79% confidence result was not accepted.',
+        },
+        {
+          bookmarkId: 'successful',
+          label: 'Filed',
+          detail: 'Filed to Destinations/Engineering with 90% confidence.',
+        },
+      ],
+    });
+
+    const serializedActivity = JSON.stringify(activity);
+    expect(serializedActivity).not.toContain('https://');
+    expect(serializedActivity).not.toContain('test-key');
+    expect(serializedActivity).not.toContain('provider unavailable');
   });
 });
