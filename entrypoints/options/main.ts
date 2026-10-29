@@ -28,6 +28,13 @@ const activityList = element<HTMLOListElement>('activity-list');
 const clearActivityButton = element<HTMLButtonElement>('clear-activity');
 const controller = createFilingOptionsController();
 const activityController = createOptionsActivityController();
+const clearActivityLabel = clearActivityButton.textContent ?? 'Clear history';
+let clearActivityConfirmationPending = false;
+
+function resetClearActivityConfirmation(): void {
+  clearActivityConfirmationPending = false;
+  clearActivityButton.textContent = clearActivityLabel;
+}
 
 function option(
   value: string,
@@ -119,6 +126,7 @@ function activityItem(item: OptionsActivityItem): HTMLLIElement {
 }
 
 function renderActivity(state: OptionsActivityViewState): void {
+  resetClearActivityConfirmation();
   activityStatus.className = '';
 
   switch (state.kind) {
@@ -192,11 +200,16 @@ clearApiKeyButton.addEventListener('click', () => {
 });
 
 clearActivityButton.addEventListener('click', () => {
-  const confirmed = window.confirm(
-    'Clear all recent filing activity? Filing settings and bookmarks will not be changed.',
-  );
-  if (!confirmed) return;
+  if (!clearActivityConfirmationPending) {
+    clearActivityConfirmationPending = true;
+    clearActivityButton.textContent = 'Confirm clear history';
+    activityStatus.className = '';
+    activityStatus.textContent =
+      'Click again to clear recent activity. Filing settings and bookmarks will not be changed.';
+    return;
+  }
 
+  resetClearActivityConfirmation();
   clearActivityButton.disabled = true;
   activityStatus.className = '';
   activityStatus.textContent = 'Clearing recent activity…';

@@ -21,4 +21,4 @@
 
 - [x] 4.1 Extend the bookmark-filing integration test across configuration, activity storage, classification, movement, and options loading; verify one successful and representative unresolved bookmark produce accurate, privacy-bounded records without changing movement decisions.
 - [x] 4.2 Run `pnpm validate`, `pnpm build`, and OpenSpec strict validation; verify all checks pass and the generated manifest adds no permissions or host access.
-- [ ] 4.3 Reload the production extension and manually exercise successful filing, low confidence, provider failure, and clear history; verify activity survives worker restart, remains capped and newest-first, and configuration and bookmarks are unaffected by clearing.
+- [x] 4.3 Reload the production extension and manually exercise successful filing, low confidence, provider failure, and clear history; verify activity survives worker restart, remains capped and newest-first, and configuration and bookmarks are unaffected by clearing.
