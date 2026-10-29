@@ -31,7 +31,7 @@ files under `.wxt/`.
 | `pnpm format:check`    | Check formatting without changing files             |
 | `pnpm lint`            | Run ESLint                                          |
 | `pnpm typecheck`       | Run strict TypeScript checks without emitting files |
-| `pnpm test`            | Run colocated unit tests in Node                    |
+| `pnpm test`            | Run grouped unit tests in Node                      |
 | `pnpm validate`        | Run formatting, linting, type checking, and tests   |
 
 ## Local Excalidraw Diagramming
@@ -189,9 +189,10 @@ model and destination roots accordingly.
 - `shared/`: small domain-neutral types and utilities
 - `public/`: static extension assets
 
-Directories are added only when they contain real code. Unit tests are colocated
-with the modules they cover as `*.test.ts`; shared fixtures may be added under
-`tests/` when needed. Feature code depends on feature-owned interfaces rather
-than infrastructure implementations. Entrypoints may compose the feature but
-must not import OpenAI or storage implementation details directly; ESLint
+Directories are added only when they contain real code. Unit tests remain
+outside production directories: feature tests belong under
+`features/tests/<feature>/`, and infrastructure tests belong under
+`infrastructure/tests/<area>/`. Feature code depends on feature-owned interfaces
+rather than infrastructure implementations. Entrypoints may compose the feature
+but must not import OpenAI or storage implementation details directly; ESLint
 enforces both dependency rules.
