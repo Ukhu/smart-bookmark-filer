@@ -7,9 +7,9 @@
 
 ## 2. Chrome action boundaries
 
-- [ ] 2.1 Add Chrome bookmark capture operations for verbatim URL search and parent-targeted creation without exposing browser types to the feature layer; verify infrastructure tests cover exact matches, empty results, creation inputs, and rejected API calls.
-- [ ] 2.2 Add action-click adaptation that safely maps the clicked tab into capture input and maps closed outcomes into accepted, already-bookmarked, setup-unavailable, or failed presentation; verify listener tests cover missing URL/title/tab ID, concurrent clicks, and rejection containment.
-- [ ] 2.3 Add per-tab action feedback with accessible titles, brief badges, defensive clearing, and options-page opening only for setup-unavailable outcomes; verify infrastructure tests cover every outcome, safe text, cleanup, repeated feedback, and absence of raw errors, URLs, or credentials.
+- [x] 2.1 Add Chrome bookmark capture operations for verbatim URL search and parent-targeted creation without exposing browser types to the feature layer; verify infrastructure tests cover exact matches, empty results, creation inputs, and rejected API calls.
+- [x] 2.2 Add action-click adaptation that safely maps the clicked tab into capture input and maps closed outcomes into accepted, already-bookmarked, setup-unavailable, or failed presentation; verify listener tests cover missing URL/title/tab ID, concurrent clicks, and rejection containment.
+- [x] 2.3 Add per-tab action feedback with accessible titles, brief badges, defensive clearing, and options-page opening only for setup-unavailable outcomes; verify infrastructure tests cover every outcome, safe text, cleanup, repeated feedback, and absence of raw errors, URLs, or credentials.
 
 ## 3. Background integration and user guidance
 

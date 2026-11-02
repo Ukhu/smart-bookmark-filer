@@ -44,12 +44,21 @@ const nestedTree: readonly BookmarkTreeNode[] = [
 ];
 
 describe('ChromeBookmarkTreeAdapter', () => {
-  it('loads a fresh snapshot from the Chrome bookmarks API', async () => {
-    const bookmarks: ChromeBookmarksApi = {
+  function createBookmarksApi(
+    overrides: Partial<ChromeBookmarksApi> = {},
+  ): ChromeBookmarksApi {
+    return {
       getTree: vi.fn(async () => nestedTree),
       get: vi.fn(async () => []),
+      search: vi.fn(async () => []),
+      create: vi.fn(async (bookmark) => ({ id: 'created', ...bookmark })),
       move: vi.fn(async () => nestedTree[0]!),
+      ...overrides,
     };
+  }
+
+  it('loads a fresh snapshot from the Chrome bookmarks API', async () => {
+    const bookmarks = createBookmarksApi();
     const adapter = new ChromeBookmarkTreeAdapter(bookmarks);
 
     const snapshot = await adapter.loadSnapshot();
@@ -69,11 +78,10 @@ describe('ChromeBookmarkTreeAdapter', () => {
       parentId: 'inbox',
       url: 'https://example.com',
     };
-    const bookmarks: ChromeBookmarksApi = {
-      getTree: vi.fn(async () => nestedTree),
+    const bookmarks = createBookmarksApi({
       get: vi.fn(async () => [bookmark]),
       move: vi.fn(async () => ({ ...bookmark, parentId: 'engineering' })),
-    };
+    });
     const adapter = new ChromeBookmarkTreeAdapter(bookmarks);
 
     await expect(adapter.getBookmark('bookmark-1')).resolves.toEqual(bookmark);
@@ -86,15 +94,81 @@ describe('ChromeBookmarkTreeAdapter', () => {
   });
 
   it('returns null when a bookmark no longer exists', async () => {
-    const bookmarks: ChromeBookmarksApi = {
-      getTree: vi.fn(async () => nestedTree),
-      get: vi.fn(async () => []),
-      move: vi.fn(async () => nestedTree[0]!),
-    };
+    const bookmarks = createBookmarksApi();
 
     await expect(
       new ChromeBookmarkTreeAdapter(bookmarks).getBookmark('deleted'),
     ).resolves.toBeNull();
+  });
+
+  it('finds only bookmarks with the exact verbatim URL', async () => {
+    const exactUrl = 'https://example.com/path?query=one#section';
+    const bookmarks = createBookmarksApi({
+      search: vi.fn(async () => [
+        { id: 'exact', title: 'Exact', url: exactUrl },
+        {
+          id: 'similar',
+          title: 'Similar',
+          url: 'https://example.com/path?query=one',
+        },
+        { id: 'folder', title: 'Folder' },
+      ]),
+    });
+    const adapter = new ChromeBookmarkTreeAdapter(bookmarks);
+
+    await expect(adapter.findByExactUrl(exactUrl)).resolves.toEqual([
+      { id: 'exact', url: exactUrl },
+    ]);
+    expect(bookmarks.search).toHaveBeenCalledWith({ url: exactUrl });
+  });
+
+  it('returns no exact URL matches when Chrome finds none', async () => {
+    const adapter = new ChromeBookmarkTreeAdapter(createBookmarksApi());
+
+    await expect(
+      adapter.findByExactUrl('https://example.com/missing'),
+    ).resolves.toEqual([]);
+  });
+
+  it('creates a bookmark in the requested parent folder', async () => {
+    const bookmarks = createBookmarksApi();
+    const adapter = new ChromeBookmarkTreeAdapter(bookmarks);
+    const input = {
+      parentId: 'inbox',
+      title: 'Example',
+      url: 'https://example.com',
+    };
+
+    await adapter.createBookmark(input);
+
+    expect(bookmarks.create).toHaveBeenCalledWith(input);
+  });
+
+  it.each([
+    [
+      'search',
+      (adapter: ChromeBookmarkTreeAdapter) =>
+        adapter.findByExactUrl('https://example.com'),
+    ],
+    [
+      'create',
+      (adapter: ChromeBookmarkTreeAdapter) =>
+        adapter.createBookmark({
+          parentId: 'inbox',
+          title: 'Example',
+          url: 'https://example.com',
+        }),
+    ],
+  ])('propagates rejected Chrome %s calls', async (operation, invoke) => {
+    const failure = new Error(`${operation} failed`);
+    const bookmarks = createBookmarksApi({
+      search: vi.fn(async () => Promise.reject(failure)),
+      create: vi.fn(async () => Promise.reject(failure)),
+    });
+
+    await expect(invoke(new ChromeBookmarkTreeAdapter(bookmarks))).rejects.toBe(
+      failure,
+    );
   });
 });
 

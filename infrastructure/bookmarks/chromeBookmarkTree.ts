@@ -16,6 +16,12 @@ export interface BookmarkFolder {
 export interface ChromeBookmarksApi {
   getTree(): Promise<readonly BookmarkTreeNode[]>;
   get(bookmarkId: string): Promise<readonly BookmarkTreeNode[]>;
+  search(query: { readonly url: string }): Promise<readonly BookmarkTreeNode[]>;
+  create(bookmark: {
+    readonly parentId: string;
+    readonly title: string;
+    readonly url: string;
+  }): Promise<BookmarkTreeNode>;
   move(
     bookmarkId: string,
     destination: { readonly parentId: string },
@@ -126,6 +132,24 @@ export class ChromeBookmarkTreeAdapter {
   async getBookmark(bookmarkId: string): Promise<BookmarkTreeNode | null> {
     const [bookmark] = await this.bookmarks.get(bookmarkId);
     return bookmark ?? null;
+  }
+
+  async findByExactUrl(
+    url: string,
+  ): Promise<readonly { readonly id: string; readonly url: string }[]> {
+    const matches = await this.bookmarks.search({ url });
+
+    return matches.flatMap((bookmark) =>
+      bookmark.url === url ? [{ id: bookmark.id, url: bookmark.url }] : [],
+    );
+  }
+
+  async createBookmark(input: {
+    readonly parentId: string;
+    readonly title: string;
+    readonly url: string;
+  }): Promise<void> {
+    await this.bookmarks.create(input);
   }
 
   async moveBookmark(

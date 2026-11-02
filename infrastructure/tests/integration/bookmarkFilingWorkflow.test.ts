@@ -82,6 +82,10 @@ describe('bookmark filing integration', () => {
         const bookmark = bookmarksById.get(bookmarkId);
         return bookmark === undefined ? [] : [bookmark];
       }),
+      search: vi.fn(async () => []),
+      create: vi.fn(async () => {
+        throw new Error('Bookmark creation is not used in this test.');
+      }),
       move,
     };
     const bookmarkTree = new ChromeBookmarkTreeAdapter(bookmarksApi);
