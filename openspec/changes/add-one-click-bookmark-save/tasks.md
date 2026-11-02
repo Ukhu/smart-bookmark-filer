@@ -19,5 +19,5 @@
 
 ## 4. Integrated verification
 
-- [ ] 4.1 Run `pnpm validate`, `pnpm build`, and `openspec validate add-one-click-bookmark-save --strict`; verify all automated checks pass and generated artifacts contain no unexpected permissions or host access.
-- [ ] 4.2 Load the production extension and manually exercise accepted capture, an exact duplicate, similar non-exact URLs, rapid repeated clicks, missing or stale setup, a restricted page, provider failure after acceptance, badge clearing, and Options redirection; verify at most one bookmark and classification request are produced per exact action URL and Recent Activity remains the filing-outcome source.
+- [x] 4.1 Run `pnpm validate`, `pnpm build`, and `openspec validate add-one-click-bookmark-save --strict`; verify all automated checks pass and generated artifacts contain no unexpected permissions or host access.
+- [x] 4.2 Load the production extension and manually exercise accepted capture, an exact duplicate, similar non-exact URLs, rapid repeated clicks, missing or stale setup, a restricted page, provider failure after acceptance, badge clearing, and Options redirection; verify at most one bookmark and classification request are produced per exact action URL and Recent Activity remains the filing-outcome source.
