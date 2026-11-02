@@ -4,6 +4,7 @@ import { ChromeBookmarkTreeAdapter } from '../../bookmarks/chromeBookmarkTree';
 import { OpenAiResponsesClassifier } from '../../openai/openAiResponsesClassifier';
 import {
   ChromeFilingConfigurationStore,
+  FILING_CONFIGURATION_STORAGE_KEY,
   type LocalStorageArea,
 } from '../../storage/chromeFilingConfigurationStore';
 import { ChromeFilingActivityStore } from '../../storage/chromeFilingActivityStore';
@@ -16,6 +17,7 @@ import type { CreatedBookmark } from '../../../features/bookmark-filing/filingWo
 import { FilingWorkflow } from '../../../features/bookmark-filing/filingWorkflow';
 import { OptionsActivityController } from '../../../features/bookmark-filing/optionsActivityController';
 import { FilingOptionsController } from '../../../features/bookmark-filing/optionsController';
+import { BookmarkCaptureController } from '../../../features/bookmark-capture/bookmarkCaptureController';
 
 function openAiResponse(folderId: string, confidence: number): Response {
   return new Response(
@@ -48,6 +50,10 @@ describe('bookmark filing integration', () => {
       }),
     };
     const bookmarksById = new Map<string, CreatedBookmark>();
+    const pending: Promise<unknown>[] = [];
+    let listener:
+      ((bookmarkId: string, bookmark: CreatedBookmark) => void) | undefined;
+    let nextBookmarkId = 0;
     const move = vi.fn(
       async (bookmarkId: string, { parentId }: { parentId: string }) => {
         const bookmark = bookmarksById.get(bookmarkId);
@@ -82,9 +88,17 @@ describe('bookmark filing integration', () => {
         const bookmark = bookmarksById.get(bookmarkId);
         return bookmark === undefined ? [] : [bookmark];
       }),
-      search: vi.fn(async () => []),
-      create: vi.fn(async () => {
-        throw new Error('Bookmark creation is not used in this test.');
+      search: vi.fn(async ({ url }: { url: string }) =>
+        [...bookmarksById.values()].filter((bookmark) => bookmark.url === url),
+      ),
+      create: vi.fn(async (input: Omit<CreatedBookmark, 'id'>) => {
+        const bookmark: CreatedBookmark = {
+          ...input,
+          id: `captured-${++nextBookmarkId}`,
+        };
+        bookmarksById.set(bookmark.id, bookmark);
+        listener?.(bookmark.id, bookmark);
+        return bookmark;
       }),
       move,
     };
@@ -121,7 +135,8 @@ describe('bookmark filing integration', () => {
       .mockResolvedValueOnce(openAiResponse('engineering', 0.79))
       .mockResolvedValueOnce(
         new Response('provider unavailable', { status: 500 }),
-      );
+      )
+      .mockResolvedValueOnce(openAiResponse('engineering', 0.95));
     const workflow = new FilingWorkflow({
       configuration: configurationStore,
       bookmarks: bookmarkTree,
@@ -132,9 +147,6 @@ describe('bookmark filing integration', () => {
       }),
       activity: activityStore,
     });
-    const pending: Promise<unknown>[] = [];
-    let listener:
-      ((bookmarkId: string, bookmark: CreatedBookmark) => void) | undefined;
     const event: BookmarkCreatedEvent = {
       addListener: vi.fn((registeredListener) => {
         listener = registeredListener;
@@ -147,55 +159,65 @@ describe('bookmark filing integration', () => {
         return processing;
       },
     });
-    const emitAndWait = async (bookmark: CreatedBookmark): Promise<void> => {
-      bookmarksById.set(bookmark.id, bookmark);
-      listener?.(bookmark.id, bookmark);
-      const processing = pending.at(-1);
+    const capture = new BookmarkCaptureController({
+      configuration: configurationStore,
+      folderTree: bookmarkTree,
+      exactUrlLookup: bookmarkTree,
+      inboxBookmarks: bookmarkTree,
+    });
+    const captureAndWait = async (page: {
+      readonly title: string;
+      readonly url: string;
+    }): Promise<CreatedBookmark> => {
+      const pendingCount = pending.length;
+      await expect(capture.capture(page)).resolves.toEqual({
+        kind: 'accepted',
+      });
+      const processing = pending[pendingCount];
       if (processing === undefined) throw new Error('Event was not processed.');
       await processing;
+      const bookmark = [...bookmarksById.values()].find(
+        ({ url }) => url === page.url,
+      );
+      if (bookmark === undefined) throw new Error('Bookmark was not created.');
+      return bookmark;
     };
 
-    await emitAndWait({
-      id: 'successful',
+    const successful = await captureAndWait({
       title: 'TypeScript',
-      parentId: 'inbox',
       url: 'https://www.typescriptlang.org/',
     });
-    await emitAndWait({
-      id: 'low-confidence',
+    const lowConfidence = await captureAndWait({
       title: 'Uncertain',
-      parentId: 'inbox',
       url: 'https://example.com/uncertain',
     });
-    await emitAndWait({
-      id: 'provider-failure',
+    const providerFailure = await captureAndWait({
       title: 'Unavailable',
-      parentId: 'inbox',
       url: 'https://example.com/unavailable',
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(move).toHaveBeenCalledTimes(1);
-    expect(move).toHaveBeenCalledWith('successful', {
+    expect(move).toHaveBeenCalledWith(successful.id, {
       parentId: 'engineering',
     });
-    expect(bookmarksById.get('successful')?.parentId).toBe('engineering');
-    expect(bookmarksById.get('low-confidence')?.parentId).toBe('inbox');
-    expect(bookmarksById.get('provider-failure')?.parentId).toBe('inbox');
+    expect(bookmarksById.get(successful.id)?.parentId).toBe('engineering');
+    expect(bookmarksById.get(lowConfidence.id)?.parentId).toBe('inbox');
+    expect(bookmarksById.get(providerFailure.id)?.parentId).toBe('inbox');
     const activity = await activityStore.load();
     expect(activity).toMatchObject([
       {
-        bookmarkId: 'provider-failure',
+        bookmarkId: providerFailure.id,
         title: 'Unavailable',
         outcome: { kind: 'unresolved', reason: 'provider-error' },
       },
       {
-        bookmarkId: 'low-confidence',
+        bookmarkId: lowConfidence.id,
         title: 'Uncertain',
         outcome: { kind: 'below-threshold', confidence: 0.79 },
       },
       {
-        bookmarkId: 'successful',
+        bookmarkId: successful.id,
         title: 'TypeScript',
         outcome: {
           kind: 'filed',
@@ -206,6 +228,55 @@ describe('bookmark filing integration', () => {
       },
     ]);
 
+    const creationCount = bookmarksApi.create.mock.calls.length;
+    await expect(
+      capture.capture({
+        title: 'Duplicate',
+        url: 'https://www.typescriptlang.org/',
+      }),
+    ).resolves.toEqual({ kind: 'already-bookmarked' });
+    expect(bookmarksApi.create).toHaveBeenCalledTimes(creationCount);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+
+    const validConfiguration = storedValues[FILING_CONFIGURATION_STORAGE_KEY];
+    storedValues[FILING_CONFIGURATION_STORAGE_KEY] = {
+      ...(validConfiguration as Record<string, unknown>),
+      destinationRootIds: ['inbox'],
+    };
+    await expect(
+      capture.capture({
+        title: 'Invalid setup',
+        url: 'https://example.com/invalid-setup',
+      }),
+    ).resolves.toEqual({ kind: 'setup-unavailable' });
+    expect(bookmarksApi.create).toHaveBeenCalledTimes(creationCount);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    storedValues[FILING_CONFIGURATION_STORAGE_KEY] = validConfiguration;
+
+    const pendingBeforeOverlap = pending.length;
+    const overlapResults = await Promise.all([
+      capture.capture({
+        title: 'Overlap',
+        url: 'https://example.com/overlap',
+      }),
+      capture.capture({
+        title: 'Overlap',
+        url: 'https://example.com/overlap',
+      }),
+    ]);
+    expect(overlapResults.map(({ kind }) => kind).sort()).toEqual([
+      'accepted',
+      'already-bookmarked',
+    ]);
+    expect(bookmarksApi.create).toHaveBeenCalledTimes(creationCount + 1);
+    expect(pending).toHaveLength(pendingBeforeOverlap + 1);
+    await pending[pendingBeforeOverlap];
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    const overlap = [...bookmarksById.values()].find(
+      ({ url }) => url === 'https://example.com/overlap',
+    );
+    expect(overlap?.parentId).toBe('engineering');
+
     const activityView = await new OptionsActivityController(
       activityStore,
     ).load();
@@ -213,24 +284,29 @@ describe('bookmark filing integration', () => {
       kind: 'activity',
       items: [
         {
-          bookmarkId: 'provider-failure',
+          bookmarkId: overlap?.id,
+          label: 'Filed',
+          detail: 'Filed to Destinations/Engineering with 95% confidence.',
+        },
+        {
+          bookmarkId: providerFailure.id,
           label: 'Unresolved',
           detail: 'OpenAI could not complete the request.',
         },
         {
-          bookmarkId: 'low-confidence',
+          bookmarkId: lowConfidence.id,
           label: 'Below confidence threshold',
           detail: 'The 79% confidence result was not accepted.',
         },
         {
-          bookmarkId: 'successful',
+          bookmarkId: successful.id,
           label: 'Filed',
           detail: 'Filed to Destinations/Engineering with 90% confidence.',
         },
       ],
     });
 
-    const serializedActivity = JSON.stringify(activity);
+    const serializedActivity = JSON.stringify(await activityStore.load());
     expect(serializedActivity).not.toContain('https://');
     expect(serializedActivity).not.toContain('test-key');
     expect(serializedActivity).not.toContain('provider unavailable');

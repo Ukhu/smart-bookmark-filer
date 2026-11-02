@@ -9,7 +9,10 @@ export default defineConfig({
     description:
       'A personal Chrome extension for automatically organizing bookmarks.',
     version: '0.1.0',
-    permissions: ['bookmarks', 'storage'],
+    action: {
+      default_title: 'Save current page to Inbox',
+    },
+    permissions: ['activeTab', 'bookmarks', 'storage'],
     host_permissions: ['https://api.openai.com/*'],
   },
 });

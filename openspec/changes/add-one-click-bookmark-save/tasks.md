@@ -13,9 +13,9 @@
 
 ## 3. Background integration and user guidance
 
-- [ ] 3.1 Compose one capture controller and feedback boundary in the background entrypoint, register `action.onClicked` alongside `bookmarks.onCreated`, and declare an action plus only the `activeTab` permission; verify the production build manifest contains the action and expected permissions without a popup, broad host access, persistent `tabs`, commands, context menus, or notifications.
-- [ ] 3.2 Extend the bookmark-filing integration test so an action-created Inbox bookmark emits the existing creation event and causes exactly one classification path, while duplicate and setup-failure attempts cause no creation or classification; verify accepted, filed, unresolved, duplicate, invalid-setup, and overlapping-click cases pass without calling the workflow directly from capture.
-- [ ] 3.3 Document one-click save, action pinning, exact-URL duplicate behavior, setup redirection, badge meaning, restricted-page failures, and the unchanged Chrome star/Ctrl+D behavior in `README.md`; verify the documented interaction and privacy claims match the capture and filing specifications.
+- [x] 3.1 Compose one capture controller and feedback boundary in the background entrypoint, register `action.onClicked` alongside `bookmarks.onCreated`, and declare an action plus only the `activeTab` permission; verify the production build manifest contains the action and expected permissions without a popup, broad host access, persistent `tabs`, commands, context menus, or notifications.
+- [x] 3.2 Extend the bookmark-filing integration test so an action-created Inbox bookmark emits the existing creation event and causes exactly one classification path, while duplicate and setup-failure attempts cause no creation or classification; verify accepted, filed, unresolved, duplicate, invalid-setup, and overlapping-click cases pass without calling the workflow directly from capture.
+- [x] 3.3 Document one-click save, action pinning, exact-URL duplicate behavior, setup redirection, badge meaning, restricted-page failures, and the unchanged Chrome star/Ctrl+D behavior in `README.md`; verify the documented interaction and privacy claims match the capture and filing specifications.
 
 ## 4. Integrated verification
 

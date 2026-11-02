@@ -108,6 +108,47 @@ The Inbox must remain separate from every destination root:
 - Destination roots may overlap each other. Overlapping roots do not make a
   folder eligible more than once.
 
+### Save the current page with the extension action
+
+Open Chrome's extensions menu and select **Smart Bookmark Filer** to save the
+current page directly into the configured Inbox. For one-click toolbar access,
+open that menu and pin the extension. The action saves immediately and does not
+open a popup.
+
+The extension first checks that the complete filing configuration is present,
+all configured folders still exist, and the folder boundaries remain valid. If
+setup is missing or stale, it creates no bookmark, briefly shows `!`, and opens
+the options page so the setup can be repaired.
+
+Before saving, the extension searches the whole Chrome profile for an existing
+bookmark whose URL exactly matches the current page URL. An exact match in any
+folder prevents creation and briefly shows `=`. Differences in the path, query
+string, or fragment are different URLs and do not prevent saving. Rapid
+overlapping action clicks are serialized so requests coordinated by this
+extension create at most one bookmark for the exact URL. Existing bookmarks are
+never moved, changed, or removed by this duplicate check.
+
+Brief action feedback means:
+
+- `OK`: Chrome accepted a new bookmark into the Inbox. This does not mean that
+  classification or filing succeeded; check **Recent activity** for that result.
+- `=`: the exact page URL was already bookmarked, so nothing was created.
+- `!`: setup was unavailable or the page could not be saved. The action title
+  distinguishes setup guidance from a general failure without exposing URLs,
+  credentials, or raw errors.
+
+Chrome does not make a usable URL available for some restricted or internal
+pages. On those pages the action creates no bookmark and reports a failure. The
+temporary `activeTab` access applies only after the explicit action click; the
+extension does not request persistent access to all tabs or broad website
+access.
+
+This action is the extension's deterministic Inbox-saving path. Chrome's native
+bookmark star and Ctrl+D behavior are unchanged: they still use Chrome's chosen
+folder and do not perform this profile-wide exact-URL check. Native bookmarks
+are automatically filed only when Chrome creates them directly in the
+configured Inbox.
+
 ### Automatic filing behavior
 
 Automatic filing considers only new URL bookmarks created directly inside the
