@@ -2,8 +2,8 @@
 
 ## 1. Bookmark capture policy
 
-- [ ] 1.1 Add a feature-owned active-page capture model, closed result variants, and narrow ports for configuration, folder snapshots, exact-URL lookup, and Inbox creation; verify feature tests cover accepted capture, URL fallback title, unavailable pages, missing configuration, stale folders, invalid boundaries, and sanitized dependency failures.
-- [ ] 1.2 Serialize the exact-URL lookup and create critical section so extension-owned overlapping requests produce at most one bookmark while preserving all existing matches; verify feature tests cover same-URL overlap, distinct URL requests, profile-wide matches, and path, query, or fragment differences.
+- [x] 1.1 Add a feature-owned active-page capture model, closed result variants, and narrow ports for configuration, folder snapshots, exact-URL lookup, and Inbox creation; verify feature tests cover accepted capture, URL fallback title, unavailable pages, missing configuration, stale folders, invalid boundaries, and sanitized dependency failures.
+- [x] 1.2 Serialize the exact-URL lookup and create critical section so extension-owned overlapping requests produce at most one bookmark while preserving all existing matches; verify feature tests cover same-URL overlap, distinct URL requests, profile-wide matches, and path, query, or fragment differences.
 
 ## 2. Chrome action boundaries
 
